@@ -12,10 +12,11 @@
    "first_tick": 63,
    "steps": [
     1,
-    2
+    2,
+    3
    ]
   }
  },
- "last_tick_at": "2026-10-28T15:18:53Z",
- "tick_no": 66
+ "last_tick_at": "2026-10-28T15:23:53Z",
+ "tick_no": 67
 }
