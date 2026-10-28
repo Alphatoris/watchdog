@@ -1,0 +1,20 @@
+name: wake-test
+on:
+  push:
+    branches: [claude/wake-pr-test]
+permissions:
+  pull-requests: write
+  issues: write
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Unlock the PT wake page, then comment on it as the bot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/9/lock" -i | head -1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/9" --jq '.locked' || true
+          sleep 3
+          gh pr comment 9 --repo "$GITHUB_REPOSITORY" --body "Watchdog wake: PT step 1 (unlocked-page test $(date -u +%H:%M:%SZ))"
