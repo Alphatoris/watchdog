@@ -10,8 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Comment on the wake PR
+      - name: Lock the PT wake page, then comment on it as the bot
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr comment 5 --repo "$GITHUB_REPOSITORY" --body "Wake test comment from Actions at $(date -u +%H:%M:%SZ)"
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/issues/9/lock" -i | head -1 || true
+          gh api "repos/$GITHUB_REPOSITORY/issues/9" --jq '.locked' || true
+          sleep 3
+          gh pr comment 9 --repo "$GITHUB_REPOSITORY" --body "Watchdog wake: PT step 1 (locked-page test $(date -u +%H:%M:%SZ))"
