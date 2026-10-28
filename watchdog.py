@@ -9,7 +9,7 @@ phone push after 2 more. Each step once. Reserved items never climb the ladder.
 The public repo holds no project data: state keys are hashes, the feed holds
 counts, stage names and times under opaque labels.
 """
-import argparse, base64, hashlib, json, os, re, sys, urllib.request, urllib.error
+import argparse, base64, hashlib, hmac, json, os, re, sys, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone
 
 LIBRARY = "Alphatoris/Alphatoris-Library"
@@ -32,25 +32,21 @@ def iso(d):
 
 
 def key_of(project, item, due):
-    return hashlib.sha256(f"{project}:{item}:{due}".encode()).hexdigest()[:16]
+    """State key for the public state file: keyed with a secret, so a guess of project, item and due time cannot be tested."""
+    secret = (os.environ.get("STATE_SALT") or os.environ.get("READ_KEY") or "").encode()
+    return hmac.new(secret, f"{project}:{item}:{due}".encode(), hashlib.sha256).hexdigest()[:16]
 
 
 LABEL_RE = re.compile(r"P[A-Z0-9]{1,5}")
 
 
-def lab_ok(e, labels):
-    try:
-        return isinstance(e, dict) and labels.count(label_of(e)) == 1
-    except ValueError:
-        return False
-
-
-def label_of(entry):
-    """The only name the public feed shows. Required: no hash of a project name is ever derived (counts only, Aamer 16:05Z)."""
+def label_of(entry, idx, labels):
+    """(label, bad). The public feed shows only public_label; a missing, malformed or shared label never stops the project
+    being woken: it is shown under a neutral index and flagged (counts only, Aamer 16:05Z; never a hash of the project name)."""
     lab = entry.get("public_label")
-    if not (isinstance(lab, str) and LABEL_RE.fullmatch(lab)):
-        raise ValueError("public_label missing or malformed")
-    return lab
+    if isinstance(lab, str) and LABEL_RE.fullmatch(lab) and labels.count(lab) == 1:
+        return lab, False
+    return f"E{idx}", True
 
 
 # ---- sources -------------------------------------------------------------
@@ -131,9 +127,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     labels = [x.get("public_label") for x in entries if isinstance(x, dict)]
     for idx, e in enumerate(entries):
         try:
-            lab = label_of(e)
-            if labels.count(lab) > 1:
-                raise ValueError("public_label shared by two projects")
+            lab, bad_label = label_of(e, idx, labels)
+        except Exception:                        # an entry that is not even a mapping
+            lab, bad_label = f"E{idx}", True
+        try:
             pid = e["project"]
             stage = source.get(f"projects/{pid}/stages/STAGE.json")
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
@@ -141,7 +138,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
-            feed[lab if lab_ok(e, labels) else f"E{idx}"] = {"error": "project_error"}
+            feed[lab] = {"error": "project_error"}
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
@@ -150,6 +147,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
+        if bad_label:
+            errors += 1                          # loud for the coordinator (guard lists projects with an error key)
+            feed[lab]["error"] = "bad_label"
+            print(f"bad public_label for entry {idx}: shown as {lab}", file=sys.stderr)
         if e.get("wake_pr") and not valid_pr(e.get("wake_pr")):
             print(f"bad wake_pr for {lab}: ignored", file=sys.stderr)
         for item, due, reserved in late:
