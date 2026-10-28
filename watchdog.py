@@ -6,8 +6,10 @@ Rules (design v2 sections 8 and 11): an open item past `due`, or with no `receiv
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
 coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 the owner list and
 phone push after 2 more. Each step once. Reserved items never climb the ladder.
-The public repo holds no project data: state keys are hashes, the feed holds
-counts, stage names and times under opaque labels.
+The public repo holds no project data: state keys are keyed hashes (HMAC), and the
+feed holds, per project, only a stage number, a state word, counts of open and late
+items and a wake-route word, under opaque labels. The only times in the published
+file are the run's own (tick_at, tick_no, lag, gap).
 """
 import argparse, base64, hashlib, hmac, json, os, re, sys, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone

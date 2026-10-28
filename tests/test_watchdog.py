@@ -80,7 +80,7 @@ class T(unittest.TestCase):
         self.assertEqual(sent, [])
         self.assertEqual(feed["tick_at"], "2026-10-28T10:55:00Z")
 
-    def test_t5_failed_wake_is_retried_next_tick(self):
+    def test_failed_wake_is_retried_next_tick(self):
         calls, state = [], {}
         w.run_tick(Src([item()]), state, T0, lambda p: calls.append(1) or False, 1)
         w.run_tick(Src([item()]), state, T0 + timedelta(minutes=5), lambda p: calls.append(1) or True, 2)
@@ -332,6 +332,21 @@ class T(unittest.TestCase):
             feed = json.load(open(os.path.join(d, "status/projects.json")))
             self.assertEqual(feed["lag_seconds_past_5min_mark"], 200)
             self.assertTrue(os.path.exists(os.path.join(d, "ticks.jsonl")))
+
+    def test_published_file_is_counts_only_apart_from_run_fields(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            for p, v in Src([item()]).f.items():
+                os.makedirs(os.path.dirname(os.path.join(fx, p)), exist_ok=True)
+                json.dump(v, open(os.path.join(fx, p), "w"))
+            sys.argv = ["w", "--out", d, "--fixtures", fx, "--now", "2026-10-28T10:03:20Z", "--dry-run"]
+            w.main()
+            feed = json.load(open(os.path.join(d, "status/projects.json")))
+            self.assertEqual(set(feed), {"tick_at", "tick_no", "lag_seconds_past_5min_mark",
+                                         "gap_seconds_since_last_tick", "projects", "errors"})
+            for entry in feed["projects"].values():
+                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "wake_route", "error"})
+            for banned in ("stage_name", "stage_updated", "reserved_waiting"):
+                self.assertNotIn(banned, json.dumps(feed))
 
 
 if __name__ == "__main__":
