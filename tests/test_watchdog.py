@@ -5,15 +5,15 @@ import watchdog as w
 
 T0 = datetime(2026, 10, 28, 10, 0, tzinfo=timezone.utc)
 REG = {"delivery_lead_session_id": "session_DL", "projects": [
-    {"project": "disposable", "public_label": "P0", "coordinator_session_id": "session_C", "watchdog_issue": "x/y#1"}]}
+    {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C", "watchdog_issue": "x/y#1"}]}
 
 
 class Src:
     def __init__(self, items=None, stage=None):
         self.f = {w.REGISTRY_PATH: REG,
-                  "projects/disposable/stages/OPEN-ITEMS.json": {"items": items or []}}
+                  "projects/watchdog-test/stages/OPEN-ITEMS.json": {"items": items or []}}
         if stage:
-            self.f["projects/disposable/stages/STAGE.json"] = stage
+            self.f["projects/watchdog-test/stages/STAGE.json"] = stage
 
     def get(self, p):
         return self.f.get(p)
@@ -98,13 +98,46 @@ class T(unittest.TestCase):
 
     def test_feed_has_no_project_names(self):
         feed = w.run_tick(Src([item()]), {}, T0, lambda p: True, 1)
-        self.assertNotIn("disposable", json.dumps(feed))
+        self.assertNotIn("watchdog-test", json.dumps(feed))
         self.assertEqual(list(feed["projects"]), ["P0"])
 
     def test_state_keys_hold_no_names(self):
         st = {}
         w.run_tick(Src([item()]), st, T0, lambda p: True, 1)
-        self.assertNotIn("disposable", json.dumps(st))
+        self.assertNotIn("watchdog-test", json.dumps(st))
+
+    def test_b1_missing_registry_fails_the_run(self):
+        class Empty:
+            def get(self, p):
+                return None
+        with self.assertRaises(w.RegistryError):
+            w.run_tick(Empty(), {}, T0, lambda p: True, 1)
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            sys.argv = ["w", "--out", d, "--fixtures", fx, "--dry-run"]
+            with self.assertRaises(SystemExit) as c:
+                w.main()
+            self.assertEqual(c.exception.code, 1)
+
+    def test_b2_naive_time_is_utc_and_bad_project_is_isolated(self):
+        self.assertEqual(w.parse("2026-10-28T09:00:00").tzinfo, timezone.utc)
+        reg = {"projects": [{"project": "bad", "public_label": "B"}, REG["projects"][0]]}
+        s = Src([item()])
+        s.f[w.REGISTRY_PATH] = reg
+        s.f["projects/bad/stages/OPEN-ITEMS.json"] = {"items": [{"id": "x", "due": "not a time"}]}
+        sent = []
+        feed = w.run_tick(s, {}, T0, lambda p: sent.append(p) or True, 1)
+        self.assertEqual(feed["errors"], 1)
+        self.assertEqual(feed["projects"]["B"], {"error": "ValueError"})
+        self.assertEqual(len(sent), 1)           # the good project still woke
+
+    def test_b5_payload_carries_no_session_ids(self):
+        sent = []
+        ticks(Src([item()]), 1, sent)
+        self.assertNotIn("session", json.dumps(sent[0]))
+
+    def test_n7_state_is_a_fixed_word(self):
+        self.assertEqual(w.state_word("Blocked on X"), "blocked")
+        self.assertEqual(w.state_word("secret project text"), "other")
 
     def test_main_dry_run_writes_files_and_lag(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:

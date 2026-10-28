@@ -23,7 +23,8 @@ CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waitin
 def parse(t):
     if not t:
         return None
-    return datetime.fromisoformat(str(t).split(" ")[0].replace("Z", "+00:00"))
+    d = datetime.fromisoformat(str(t).split(" ")[0].replace("Z", "+00:00"))
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)   # a time with no zone is read as UTC
 
 
 def iso(d):
@@ -89,19 +90,42 @@ def late_items(project, stage, items, now):
     return out
 
 
+STATE_WORDS = (("waiting_on_aamer", ("waiting on aamer", "waiting_on_aamer")), ("blocked", ("block",)),
+               ("done", ("done", "closed", "complete")), ("in_progress", ("progress", "active", "working", "open")))
+
+
+def state_word(s):
+    s = str(s or "").lower()
+    for word, keys in STATE_WORDS:
+        if any(k in s for k in keys):
+            return word
+    return "other"
+
+
+class RegistryError(Exception):
+    pass
+
+
 def run_tick(source, state, now, send, tick_no):
-    registry = source.get(REGISTRY_PATH) or {"projects": []}
-    entries = list(registry.get("projects", []))
-    feed, seen = {}, set()
-    dl = {"delivery_lead_session_id": registry.get("delivery_lead_session_id")}
+    registry = source.get(REGISTRY_PATH)
+    if not isinstance(registry, dict) or not isinstance(registry.get("projects"), list):
+        raise RegistryError("REGISTRY.json missing or malformed")   # fails the run: never a green empty feed
+    entries = list(registry["projects"])
+    feed, seen, errors = {}, set(), 0
     for e in entries:
-        pid = e["project"]
-        stage = source.get(f"projects/{pid}/stages/STAGE.json")
-        items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
-        late = late_items(pid, stage, items, now)
+        try:
+            pid = e["project"]
+            stage = source.get(f"projects/{pid}/stages/STAGE.json")
+            items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
+            late = late_items(pid, stage, items, now)
+        except Exception as ex:                  # one bad project never stops the others
+            errors += 1
+            feed[label_of(e) if isinstance(e, dict) and "project" in e else "?"] = {"error": type(ex).__name__}
+            print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
+            continue
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
         feed[label_of(e)] = {"stage": (stage or {}).get("stage"), "stage_name": (stage or {}).get("stage_name"),
-                             "state": (stage or {}).get("state"), "open": openn,
+                             "state": state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
                              "stage_updated": (stage or {}).get("updated")}
         for item, due, reserved in late:
@@ -116,16 +140,14 @@ def run_tick(source, state, now, send, tick_no):
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
-                           "coordinator_session_id": e.get("coordinator_session_id"),
-                           "delivery_lead_session_id": e.get("delivery_lead_session_id") or dl["delivery_lead_session_id"],
-                           "watchdog_issue": e.get("watchdog_issue"), "sent_at": iso(now)}
+                           "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
                 if send(payload):
                     s["steps"].append(step)
                 break                          # one step per tick
     for k in list(state):                      # closed or re-dated items drop out
         if k not in seen:
             del state[k]
-    return {"tick_at": iso(now), "projects": feed}
+    return {"tick_at": iso(now), "projects": feed, "errors": errors}
 
 
 def fire_wake(url, key):
@@ -162,13 +184,23 @@ def main():
     st["tick_no"] += 1
     send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
-    feed = run_tick(src, st["items"], now, send, st["tick_no"])
+    try:
+        feed = run_tick(src, st["items"], now, send, st["tick_no"])
+    except RegistryError as ex:
+        print(f"FAILED: {ex}", file=sys.stderr)
+        sys.exit(1)
     lag = (now - now.replace(minute=now.minute - now.minute % 5, second=0, microsecond=0)).total_seconds()
+    prev = parse(st.get("last_tick_at"))
     feed["tick_no"], feed["lag_seconds_past_5min_mark"] = st["tick_no"], int(lag)
+    feed["gap_seconds_since_last_tick"] = int((now - prev).total_seconds()) if prev else None
+    st["last_tick_at"] = iso(now)
     json.dump(feed, open(os.path.join(sdir, "projects.json"), "w"), indent=1, sort_keys=True)
     json.dump(st, open(sp, "w"), indent=1, sort_keys=True)
     with open(os.path.join(a.out, "ticks.jsonl"), "a") as f:
-        f.write(json.dumps({"tick_at": feed["tick_at"], "lag": int(lag)}) + "\n")
+        f.write(json.dumps({"tick_at": feed["tick_at"], "lag": int(lag),
+                            "gap": feed["gap_seconds_since_last_tick"]}) + "\n")
+    if feed["errors"]:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
