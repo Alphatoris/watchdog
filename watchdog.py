@@ -35,8 +35,22 @@ def key_of(project, item, due):
     return hashlib.sha256(f"{project}:{item}:{due}".encode()).hexdigest()[:16]
 
 
+LABEL_RE = re.compile(r"P[A-Z0-9]{1,5}")
+
+
+def lab_ok(e, labels):
+    try:
+        return isinstance(e, dict) and labels.count(label_of(e)) == 1
+    except ValueError:
+        return False
+
+
 def label_of(entry):
-    return entry.get("public_label") or hashlib.sha256(entry["project"].encode()).hexdigest()[:6]
+    """The only name the public feed shows. Required: no hash of a project name is ever derived (counts only, Aamer 16:05Z)."""
+    lab = entry.get("public_label")
+    if not (isinstance(lab, str) and LABEL_RE.fullmatch(lab)):
+        raise ValueError("public_label missing or malformed")
+    return lab
 
 
 # ---- sources -------------------------------------------------------------
@@ -114,8 +128,12 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
-    for e in entries:
+    labels = [x.get("public_label") for x in entries if isinstance(x, dict)]
+    for idx, e in enumerate(entries):
         try:
+            lab = label_of(e)
+            if labels.count(lab) > 1:
+                raise ValueError("public_label shared by two projects")
             pid = e["project"]
             stage = source.get(f"projects/{pid}/stages/STAGE.json")
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
@@ -123,17 +141,17 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
-            feed[label_of(e) if isinstance(e, dict) and "project" in e else "?"] = {"error": "project_error"}
+            feed[lab if lab_ok(e, labels) else f"E{idx}"] = {"error": "project_error"}
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
         stage_no = (stage or {}).get("stage")      # public feed (Aamer, 28 Oct 16:05 UTC): counts only, no names or free text
-        feed[label_of(e)] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
+        feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         if e.get("wake_pr") and not valid_pr(e.get("wake_pr")):
-            print(f"bad wake_pr for {label_of(e)}: ignored", file=sys.stderr)
+            print(f"bad wake_pr for {lab}: ignored", file=sys.stderr)
         for item, due, reserved in late:
             if reserved:
                 continue                       # never climbs the ladder
@@ -150,7 +168,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     s["steps"] = [x for x in s["steps"] if x != 1]   # and step 1 is sent again by the wake runner
                     del s["pr_wake"]
             if s.get("pr_down"):
-                feed[label_of(e)]["wake_route"] = s["pr_down"]
+                feed[lab]["wake_route"] = s["pr_down"]
             for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
                 if step in s["steps"] or age < need:
                     continue
@@ -159,11 +177,11 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
                 if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
-                    payload["label"] = label_of(e)
+                    payload["label"] = lab
                 ok = send(payload)
                 if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
                     s["pr_down"] = "pr_failed"
-                    feed[label_of(e)]["wake_route"] = "pr_failed"
+                    feed[lab]["wake_route"] = "pr_failed"
                     payload.pop("wake_pr"); payload.pop("label", None)
                     ok = send(payload)                               # same step, by the existing route, in this tick
                 if ok:
