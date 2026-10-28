@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Coordinator watchdog. No AI. Reads the Library records, decides what is late,
+wakes through the wake runner, writes a status feed. Standard library only.
+
+Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
+30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
+coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 the owner list and
+phone push after 2 more. Each step once. Reserved items never climb the ladder.
+The public repo holds no project data: state keys are hashes, the feed holds
+counts, stage names and times under opaque labels.
+"""
+import argparse, base64, hashlib, json, os, sys, urllib.request, urllib.error
+from datetime import datetime, timedelta, timezone
+
+LIBRARY = "Alphatoris/Alphatoris-Library"
+REGISTRY_PATH = "projects/alphatoris-wide/stages/REGISTRY.json"
+DL_ITEMS_PATH = "projects/alphatoris-wide/stages/OPEN-ITEMS.json"
+RECEIVE_GRACE = timedelta(minutes=30)
+STEP2_TICKS, STEP3_TICKS = 2, 4          # ticks after first detection
+CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waiting on aamer"}
+
+
+def parse(t):
+    if not t:
+        return None
+    return datetime.fromisoformat(str(t).split(" ")[0].replace("Z", "+00:00"))
+
+
+def iso(d):
+    return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def key_of(project, item, due):
+    return hashlib.sha256(f"{project}:{item}:{due}".encode()).hexdigest()[:16]
+
+
+def label_of(entry):
+    return entry.get("public_label") or hashlib.sha256(entry["project"].encode()).hexdigest()[:6]
+
+
+# ---- sources -------------------------------------------------------------
+class GitHubSource:
+    def __init__(self, token, repo=LIBRARY):
+        self.token, self.repo = token, repo
+
+    def get(self, path):
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref=main",
+            headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github.raw+json",
+                     "X-GitHub-Api-Version": "2022-11-28"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            raise
+
+
+class DirSource:
+    def __init__(self, root):
+        self.root = root
+
+    def get(self, path):
+        p = os.path.join(self.root, path)
+        return json.load(open(p)) if os.path.exists(p) else None
+
+
+# ---- decisions -----------------------------------------------------------
+def late_items(project, stage, items, now):
+    """Return list of (item_id, due_iso, reserved) that are late."""
+    out = []
+    for it in (items or {}).get("items", []):
+        if it.get("done") or it.get("dropped"):
+            continue
+        due = parse(it.get("due"))
+        given = parse(it.get("given"))
+        past_due = due is not None and due < now
+        unreceived = (not it.get("received")) and given is not None and given + RECEIVE_GRACE < now
+        if past_due or unreceived:
+            when = it.get("due") or iso(given + RECEIVE_GRACE)
+            reserved = bool(it.get("reserved")) or "aamer" in str(it.get("owner", "")).lower()
+            out.append((it["id"], when, reserved))
+    if stage:
+        cp = parse(stage.get("next_checkpoint"))
+        st = str(stage.get("state", "")).lower()
+        if cp and cp < now and st not in CLOSED_STAGE_STATES and not stage.get("stage_ended"):
+            out.append(("stage-checkpoint", stage["next_checkpoint"], False))
+    return out
+
+
+def run_tick(source, state, now, send, tick_no):
+    registry = source.get(REGISTRY_PATH) or {"projects": []}
+    entries = list(registry.get("projects", []))
+    feed, seen = {}, set()
+    dl = {"delivery_lead_session_id": registry.get("delivery_lead_session_id")}
+    for e in entries:
+        pid = e["project"]
+        stage = source.get(f"projects/{pid}/stages/STAGE.json")
+        items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
+        late = late_items(pid, stage, items, now)
+        openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
+        feed[label_of(e)] = {"stage": (stage or {}).get("stage"), "stage_name": (stage or {}).get("stage_name"),
+                             "state": (stage or {}).get("state"), "open": openn,
+                             "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
+                             "stage_updated": (stage or {}).get("updated")}
+        for item, due, reserved in late:
+            if reserved:
+                continue                       # never climbs the ladder
+            k = key_of(pid, item, due)
+            seen.add(k)
+            s = state.setdefault(k, {"first_tick": tick_no, "steps": []})
+            age = tick_no - s["first_tick"]
+            for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
+                if step in s["steps"] or age < need:
+                    continue
+                target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
+                payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
+                           "coordinator_session_id": e.get("coordinator_session_id"),
+                           "delivery_lead_session_id": e.get("delivery_lead_session_id") or dl["delivery_lead_session_id"],
+                           "watchdog_issue": e.get("watchdog_issue"), "sent_at": iso(now)}
+                if send(payload):
+                    s["steps"].append(step)
+                break                          # one step per tick
+    for k in list(state):                      # closed or re-dated items drop out
+        if k not in seen:
+            del state[k]
+    return {"tick_at": iso(now), "projects": feed}
+
+
+def fire_wake(url, key):
+    def send(payload):
+        if not url:
+            print("WAKE_URL not set; not sending", file=sys.stderr)
+            return False
+        body = json.dumps({"text": json.dumps(payload)}).encode()
+        req = urllib.request.Request(url, data=body, method="POST", headers={
+            "Authorization": f"Bearer {key}", "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01", "anthropic-beta": "experimental-cc-routine-2026-04-01"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return 200 <= r.status < 300
+        except Exception as ex:
+            print(f"wake failed: {ex}", file=sys.stderr)
+            return False
+    return send
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default="status-out", help="directory holding the status branch checkout")
+    ap.add_argument("--fixtures", help="read records from a directory instead of GitHub")
+    ap.add_argument("--now")
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args()
+    now = parse(a.now) if a.now else datetime.now(timezone.utc)
+    src = DirSource(a.fixtures) if a.fixtures else GitHubSource(os.environ["READ_KEY"])
+    sdir = os.path.join(a.out, "status")
+    os.makedirs(sdir, exist_ok=True)
+    sp = os.path.join(a.out, "state.json")
+    st = json.load(open(sp)) if os.path.exists(sp) else {"tick_no": 0, "items": {}}
+    st["tick_no"] += 1
+    send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
+        fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
+    feed = run_tick(src, st["items"], now, send, st["tick_no"])
+    lag = (now - now.replace(minute=now.minute - now.minute % 5, second=0, microsecond=0)).total_seconds()
+    feed["tick_no"], feed["lag_seconds_past_5min_mark"] = st["tick_no"], int(lag)
+    json.dump(feed, open(os.path.join(sdir, "projects.json"), "w"), indent=1, sort_keys=True)
+    json.dump(st, open(sp, "w"), indent=1, sort_keys=True)
+    with open(os.path.join(a.out, "ticks.jsonl"), "a") as f:
+        f.write(json.dumps({"tick_at": feed["tick_at"], "lag": int(lag)}) + "\n")
+
+
+if __name__ == "__main__":
+    main()
