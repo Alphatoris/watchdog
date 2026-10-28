@@ -86,6 +86,15 @@ class T(unittest.TestCase):
         w.run_tick(Src([item()]), state, T0 + timedelta(minutes=5), lambda p: calls.append(1) or True, 2)
         self.assertEqual(len(calls), 2)
 
+    def test_paused_project_is_shown_and_never_chased(self):
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], paused=True)]}
+        sent, state = [], {}
+        r = w.run_tick(src, state, T0, lambda p: sent.append(p) or True, 1)
+        self.assertEqual(sent, [])
+        self.assertEqual(r["projects"]["P0"]["state"], "paused")
+        self.assertEqual(r["projects"]["P0"]["late"], 0)
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
