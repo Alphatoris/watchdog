@@ -1,7 +1,7 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 112,
- "lag_seconds_past_5min_mark": 172,
+ "gap_seconds_since_last_tick": 673,
+ "lag_seconds_past_5min_mark": 245,
  "projects": {
   "P0": {
    "late": 0,
@@ -13,7 +13,7 @@
    "state": "other"
   },
   "P1": {
-   "late": 0,
+   "late": 1,
    "open": 0,
    "reserved_waiting": 0,
    "stage": 2,
@@ -31,6 +31,6 @@
    "state": "other"
   }
  },
- "tick_at": "2026-10-28T09:52:52Z",
- "tick_no": 2
+ "tick_at": "2026-10-28T10:04:05Z",
+ "tick_no": 3
 }
