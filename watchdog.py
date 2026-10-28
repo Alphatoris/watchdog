@@ -123,14 +123,14 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
-            feed[label_of(e) if isinstance(e, dict) and "project" in e else "?"] = {"error": type(ex).__name__}
+            feed[label_of(e) if isinstance(e, dict) and "project" in e else "?"] = {"error": "project_error"}
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
-        feed[label_of(e)] = {"stage": (stage or {}).get("stage"), "stage_name": (stage or {}).get("stage_name"),
+        stage_no = (stage or {}).get("stage")      # public feed (Aamer, 28 Oct 16:05 UTC): counts only, no names or free text
+        feed[label_of(e)] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
-                             "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
-                             "stage_updated": (stage or {}).get("updated"),
+                             "late": len([l for l in late if not l[2]]),
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         if e.get("wake_pr") and not valid_pr(e.get("wake_pr")):
             print(f"bad wake_pr for {label_of(e)}: ignored", file=sys.stderr)
