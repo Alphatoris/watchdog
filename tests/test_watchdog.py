@@ -227,25 +227,47 @@ class T(unittest.TestCase):
                 self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
         self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
 
-    def test_public_label_is_required_and_never_a_hash(self):
+    def test_bad_label_changes_the_feed_only_never_the_wake(self):
         good = REG["projects"][0]
-        cases = {"missing": {"project": "p1"}, "malformed": {"project": "p1", "public_label": "axiomera"},
-                 "not a string": {"project": "p1", "public_label": 7}}
-        for name, bad in cases.items():
+        cases = {"missing": {}, "malformed": {"public_label": "axiomera"}, "not a string": {"public_label": 7}}
+        for name, extra in cases.items():
+            bad = dict(good, project="p1", **extra)
+            bad.pop("public_label", None) if name == "missing" else None
             src = Src([item()])
-            src.f[w.REGISTRY_PATH] = {"projects": [bad, good]}
-            r = w.run_tick(src, {}, T0, lambda p: True, 1)
-            self.assertEqual(r["projects"]["E0"], {"error": "project_error"}, name)
+            src.f[w.REGISTRY_PATH] = {"projects": [bad, dict(good, project="watchdog-test")]}
+            src.f["projects/p1/stages/OPEN-ITEMS.json"] = {"items": [item()]}
+            sent = []
+            r = w.run_tick(src, {}, T0, lambda p: sent.append(dict(p)) or True, 1)
+            self.assertEqual(r["projects"]["E0"]["error"], "bad_label", name)
+            self.assertEqual(r["projects"]["E0"]["late"], 1, name)      # still counted
+            self.assertEqual(sorted(p["project"] for p in sent), ["p1", "watchdog-test"], name)   # and still woken
+            self.assertNotIn("p1", json.dumps(r["projects"]), name)     # the name is never shown
             self.assertEqual(r["errors"], 1, name)
-            self.assertNotIn("p1", json.dumps(r), name)
-            self.assertIn("P0", r["projects"], name)               # the other project is unaffected
 
-    def test_shared_public_label_is_an_error_for_both(self):
+    def test_shared_public_label_is_flagged_for_both_and_both_woken(self):
         src = Src([item()])
         src.f[w.REGISTRY_PATH] = {"projects": [REG["projects"][0], dict(REG["projects"][0], project="other")]}
-        r = w.run_tick(src, {}, T0, lambda p: True, 1)
+        src.f["projects/other/stages/OPEN-ITEMS.json"] = {"items": [item()]}
+        sent = []
+        r = w.run_tick(src, {}, T0, lambda p: sent.append(dict(p)) or True, 1)
         self.assertEqual(r["errors"], 2)
         self.assertEqual(sorted(r["projects"]), ["E0", "E1"])
+        self.assertEqual(len(sent), 2)
+
+    def test_state_keys_are_keyed_with_a_secret(self):
+        old = {k: os.environ.pop(k, None) for k in ("STATE_SALT", "READ_KEY")}
+        try:
+            os.environ["READ_KEY"] = "secret-a"
+            a = w.key_of("p", "i", "d")
+            os.environ["READ_KEY"] = "secret-b"
+            b = w.key_of("p", "i", "d")
+            self.assertNotEqual(a, b)
+            self.assertNotEqual(a, __import__("hashlib").sha256(b"p:i:d").hexdigest()[:16])
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None)
+                if v is not None:
+                    os.environ[k] = v
 
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
