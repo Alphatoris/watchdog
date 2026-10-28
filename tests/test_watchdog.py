@@ -204,6 +204,31 @@ class T(unittest.TestCase):
             self.assertTrue(all("wake_pr" not in p for p in sent))
             self.assertEqual(len(sent), 2)                  # both projects still woken
 
+    def test_unacked_mark_stays_on_the_feed_until_an_ack_arrives_after_it(self):
+        state, sent = {}, []
+        for i in range(3):                       # wake at tick 1, no ack for 2 ticks: marked at tick 3
+            w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
+        quiet = self._pr_src()
+        quiet.f["projects/watchdog-test/stages/OPEN-ITEMS.json"] = {"items": []}      # the item closes: nothing late
+        r = w.run_tick(quiet, state, T0 + timedelta(minutes=20), lambda p: True, 5, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_unacked")             # not "healthy" while nothing is late
+        r = w.run_tick(quiet, state, T0 + timedelta(minutes=25), lambda p: True, 6, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_unacked")
+        r = w.run_tick(quiet, state, T0 + timedelta(minutes=30), lambda p: True, 7, lambda pr, at: True)   # the relay answers
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_comment")
+        r = w.run_tick(quiet, state, T0 + timedelta(minutes=35), lambda p: True, 8, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_comment")             # and it stays cleared
+        self.assertEqual(state, {})
+
+    def test_unacked_mark_is_dropped_when_the_wake_page_leaves_the_registry(self):
+        state = {}
+        for i in range(3):
+            w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: True, i + 1, lambda pr, at: False)
+        plain = Src([])
+        r = w.run_tick(plain, state, T0 + timedelta(minutes=20), lambda p: True, 5, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "hourly_guard_only")
+        self.assertEqual(state, {})
+
     def test_n16_unacked_step_one_is_sent_again_by_the_runner(self):
         sent, state = [], {}
         for i in range(5):
