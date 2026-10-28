@@ -24,16 +24,16 @@
    "wake_route": "hourly_guard_only"
   },
   "PT": {
-   "late": 1,
-   "open": 1,
+   "late": 2,
+   "open": 2,
    "reserved_waiting": 0,
    "stage": null,
    "stage_name": null,
    "stage_updated": null,
    "state": "other",
-   "wake_route": "hourly_guard_only"
+   "wake_route": "pr_comment"
   }
  },
- "tick_at": "2026-10-28T15:59:15Z",
- "tick_no": 75
+ "tick_at": "2026-10-28T16:04:15Z",
+ "tick_no": 76
 }
