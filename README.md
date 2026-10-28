@@ -1,6 +1,6 @@
 # watchdog
 
-A scheduled script (GitHub Actions, every 5 minutes, no AI) that finds late work in the Alphatoris Library records and wakes whoever owns it. This repository holds only the script, its workflow, tests, and a `status` branch. It holds no project data: the status feed has counts, stage names and times under opaque labels, and the state file keys are hashes.
+A scheduled script (GitHub Actions, every 5 minutes, no AI) that finds late work in the Alphatoris Library records and wakes whoever owns it. This repository holds only the script, its workflow, tests, and a `status` branch. It holds no project data: the public status feed has, per opaque project id, only the stage number, a fixed state word and counts of open and late items (owner decision of 28 October 2026 16:05 UTC: counts only, no names, times or free text), and the state file keys are hashes.
 
 Secrets (repository secrets, never in files): `READ_KEY` (read-only Library key), `WAKE_URL`, `WAKE_KEY` (wake runner).
 

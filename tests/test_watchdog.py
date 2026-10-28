@@ -209,6 +209,24 @@ class T(unittest.TestCase):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
         self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
 
+    def test_feed_is_counts_only_no_names_or_free_text(self):
+        stage = {"stage": 2, "stage_name": "Requirements SECRETNAME", "state": "blocked", "updated": "2026-10-28T06:30:00Z",
+                 "next_checkpoint": "2026-10-28T09:00:00Z", "note": "free text SECRETNOTE"}
+        src = self._pr_src()
+        src.f["projects/watchdog-test/stages/STAGE.json"] = stage
+        src.f["projects/watchdog-test/stages/OPEN-ITEMS.json"] = {"items": [item(what="SECRETWHAT", owner="SECRETOWNER")]}
+        r = w.run_tick(src, {}, T0, lambda p: True, 1)
+        text = json.dumps(r)
+        for secret in ("SECRETNAME", "SECRETNOTE", "SECRETWHAT", "SECRETOWNER", "Requirements", "watchdog-test"):
+            self.assertNotIn(secret, text)
+        words = {"other", "blocked", "done", "in_progress", "waiting_on_aamer", "paused", "pr_comment", "pr_unacked", "pr_failed",
+                 "hourly_guard_only", "project_error"}
+        for lab, v in r["projects"].items():
+            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "wake_route", "error"})
+            for k, x in v.items():
+                self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
+        self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
@@ -250,7 +268,7 @@ class T(unittest.TestCase):
         sent = []
         feed = w.run_tick(s, {}, T0, lambda p: sent.append(p) or True, 1)
         self.assertEqual(feed["errors"], 1)
-        self.assertEqual(feed["projects"]["B"], {"error": "ValueError"})
+        self.assertEqual(feed["projects"]["B"], {"error": "project_error"})
         self.assertEqual(len(sent), 1)           # the good project still woke
 
     def test_b5_payload_carries_no_session_ids(self):
