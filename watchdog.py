@@ -128,7 +128,8 @@ def run_tick(source, state, now, send, tick_no):
         feed[label_of(e)] = {"stage": (stage or {}).get("stage"), "stage_name": (stage or {}).get("stage_name"),
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
-                             "stage_updated": (stage or {}).get("updated")}
+                             "stage_updated": (stage or {}).get("updated"),
+                             "wake_route": ("pr_comment" if subscriber_ok(e, now) else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         for item, due, reserved in late:
             if reserved:
                 continue                       # never climbs the ladder
@@ -142,7 +143,7 @@ def run_tick(source, state, now, send, tick_no):
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
-                if e.get("wake_pr"):
+                if e.get("wake_pr") and subscriber_ok(e, now):
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
                     payload["label"] = label_of(e)
                 if send(payload):
@@ -152,6 +153,17 @@ def run_tick(source, state, now, send, tick_no):
         if k not in seen:
             del state[k]
     return {"tick_at": iso(now), "projects": feed, "errors": errors}
+
+
+SUBSCRIBER_MAX_AGE = timedelta(hours=12)
+
+
+def subscriber_ok(e, now):
+    """The wake PR is used only while the registry names a subscriber session, subscribed recently. The script cannot see
+    GitHub's subscription itself, so a missing or old record falls back to the hourly guard and the feed says so."""
+    sub = e.get("wake_subscriber") or {}
+    t = parse(sub.get("subscribed_at"))
+    return bool(sub.get("session_id") and t and now - t <= SUBSCRIBER_MAX_AGE)
 
 
 def comment_wake(wake_pr, label, step, token):

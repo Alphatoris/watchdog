@@ -97,7 +97,7 @@ class T(unittest.TestCase):
 
     def test_wake_pr_payload_and_public_text(self):
         src = Src([item()])
-        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], public_label="P9", wake_pr="o/r#5")]}
+        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], public_label="P9", wake_pr="o/r#5", wake_subscriber={"session_id": "session_X", "subscribed_at": "2026-10-28T09:00:00Z"})]}
         sent = []
         w.run_tick(src, {}, T0, lambda p: sent.append(p) or True, 1)
         self.assertEqual((sent[0]["wake_pr"], sent[0]["label"]), ("o/r#5", "P9"))
@@ -110,6 +110,17 @@ class T(unittest.TestCase):
             w.urllib.request.urlopen = orig
         self.assertTrue(seen[0].full_url.endswith("/repos/o/r/issues/5/comments"))
         self.assertNotIn(b"watchdog-test", seen[0].data)
+
+    def test_wake_pr_needs_a_recent_subscriber(self):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5")
+        for sub, route in ((None, "hourly_guard_only"), ({"session_id": "s", "subscribed_at": "2026-10-27T09:00:00Z"}, "hourly_guard_only"),
+                           ({"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, "pr_comment")):
+            src = Src([item()])
+            src.f[w.REGISTRY_PATH] = {"projects": [dict(reg, wake_subscriber=sub)]}
+            sent = []
+            r = w.run_tick(src, {}, T0, lambda p: sent.append(p) or True, 1)
+            self.assertEqual(r["projects"]["P0"]["wake_route"], route)
+            self.assertEqual("wake_pr" in sent[0], route == "pr_comment")
 
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
