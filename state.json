@@ -1,12 +1,5 @@
 {
- "items": {
-  "be75c309d973886a": {
-   "first_tick": 2,
-   "steps": [
-    1
-   ]
-  }
- },
+ "items": {},
  "last_tick_at": "2026-10-28T09:52:52Z",
  "tick_no": 2
 }
