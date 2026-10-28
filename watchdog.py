@@ -142,6 +142,9 @@ def run_tick(source, state, now, send, tick_no):
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
+                if e.get("wake_pr"):
+                    payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
+                    payload["label"] = label_of(e)
                 if send(payload):
                     s["steps"].append(step)
                 break                          # one step per tick
@@ -151,8 +154,26 @@ def run_tick(source, state, now, send, tick_no):
     return {"tick_at": iso(now), "projects": feed, "errors": errors}
 
 
+def comment_wake(wake_pr, label, step, token):
+    """Comment on the project's wake pull request; a subscribed session wakes in seconds. Public text: label and step only."""
+    repo, num = wake_pr.rsplit("#", 1)
+    body = json.dumps({"body": f"Watchdog wake: {label} step {step}"}).encode()
+    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
+                                 method="POST", headers={"Authorization": f"Bearer {token}",
+                                                         "Accept": "application/vnd.github+json",
+                                                         "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return 200 <= r.status < 300
+    except Exception as ex:
+        print(f"comment wake failed: {ex}", file=sys.stderr)
+        return False
+
+
 def fire_wake(url, key):
     def send(payload):
+        if payload.get("wake_pr"):
+            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""))
         if not url:
             print("WAKE_URL not set; not sending", file=sys.stderr)
             return False

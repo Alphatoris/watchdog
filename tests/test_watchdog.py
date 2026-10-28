@@ -95,6 +95,22 @@ class T(unittest.TestCase):
         self.assertEqual(r["projects"]["P0"]["state"], "paused")
         self.assertEqual(r["projects"]["P0"]["late"], 0)
 
+    def test_wake_pr_payload_and_public_text(self):
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], public_label="P9", wake_pr="o/r#5")]}
+        sent = []
+        w.run_tick(src, {}, T0, lambda p: sent.append(p) or True, 1)
+        self.assertEqual((sent[0]["wake_pr"], sent[0]["label"]), ("o/r#5", "P9"))
+        seen = []
+        orig = w.urllib.request.urlopen
+        w.urllib.request.urlopen = lambda req, timeout=0: seen.append(req) or type("R", (), {"status": 201, "__enter__": lambda s: s, "__exit__": lambda s, *a: None})()
+        try:
+            self.assertTrue(w.fire_wake("", "")(sent[0]))
+        finally:
+            w.urllib.request.urlopen = orig
+        self.assertTrue(seen[0].full_url.endswith("/repos/o/r/issues/5/comments"))
+        self.assertNotIn(b"watchdog-test", seen[0].data)
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
