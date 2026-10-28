@@ -111,6 +111,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     if not isinstance(registry, dict) or not isinstance(registry.get("projects"), list):
         raise RegistryError("REGISTRY.json missing or malformed")   # fails the run: never a green empty feed
     entries = list(registry["projects"])
+    prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
+    dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
     for e in entries:
         try:
@@ -129,7 +131,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
                              "stage_updated": (stage or {}).get("updated"),
-                             "wake_route": ("pr_comment" if subscriber_ok(e, now) else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
+                             "wake_route": ("pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         for item, due, reserved in late:
             if reserved:
                 continue                       # never climbs the ladder
@@ -142,17 +144,25 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if acked(pw["pr"], pw["at"]):
                     pw["acked"] = True
                 elif tick_no - pw["tick"] >= PR_ACK_TICKS:
-                    feed[label_of(e)]["wake_route"] = "pr_unacked"   # lost wake: the hourly guard is the only route
+                    s["pr_down"] = "pr_unacked"                      # lost wake: later steps use the ladder's other route
+            if s.get("pr_down"):
+                feed[label_of(e)]["wake_route"] = s["pr_down"]
             for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
                 if step in s["steps"] or age < need:
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
-                if e.get("wake_pr") and subscriber_ok(e, now):
+                if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
                     payload["label"] = label_of(e)
-                if send(payload):
+                ok = send(payload)
+                if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
+                    s["pr_down"] = "pr_failed"
+                    feed[label_of(e)]["wake_route"] = "pr_failed"
+                    payload.pop("wake_pr"); payload.pop("label", None)
+                    ok = send(payload)                               # same step, by the existing route, in this tick
+                if ok:
                     s["steps"].append(step)
                     if payload.get("wake_pr"):
                         s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
@@ -172,7 +182,7 @@ def subscriber_ok(e, now):
     GitHub's subscription itself, so a missing or old record falls back to the hourly guard and the feed says so."""
     sub = e.get("wake_subscriber") or {}
     t = parse(sub.get("subscribed_at"))
-    return bool(sub.get("session_id") and t and now - t <= SUBSCRIBER_MAX_AGE)
+    return bool(sub.get("session_id") and t and timedelta(0) <= now - t <= SUBSCRIBER_MAX_AGE)   # a future time is rejected
 
 
 def comment_wake(wake_pr, label, step, token):
@@ -199,7 +209,7 @@ def pr_acked(token):
                                      headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
-                return any(c.get("user", {}).get("type") != "Bot" for c in json.load(r))
+                return any(c.get("user", {}).get("type") != "Bot" and c.get("author_association") in ("OWNER", "MEMBER") for c in json.load(r))
         except Exception as ex:
             print(f"ack check failed: {ex}", file=sys.stderr)
             return False
