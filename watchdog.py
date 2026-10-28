@@ -198,7 +198,6 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     return {"tick_at": iso(now), "projects": feed, "errors": errors}
 
 
-SUBSCRIBER_MAX_AGE = timedelta(hours=12)
 PR_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$")
 
 
@@ -208,11 +207,13 @@ PR_ACK_TICKS = 2
 
 
 def subscriber_ok(e, now):
-    """The wake PR is used only while the registry names a subscriber session, subscribed recently. The script cannot see
-    GitHub's subscription itself, so a missing or old record falls back to the hourly guard and the feed says so."""
+    """The wake PR is used only while the registry names a subscriber session with a subscribe time that is not in the
+    future. There is no age limit: the script cannot see GitHub's subscription itself, so a dead or replaced relay is
+    caught by the acknowledgement check (no ack within PR_ACK_TICKS falls back to the wake runner and the hourly guard
+    and the feed says pr_unacked), not by the age of the record."""
     sub = e.get("wake_subscriber") or {}
     t = parse(sub.get("subscribed_at"))
-    return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and timedelta(0) <= now - t <= SUBSCRIBER_MAX_AGE)   # a future time is rejected
+    return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and now >= t)   # a future time is rejected
 
 
 def comment_wake(wake_pr, label, step, token):
