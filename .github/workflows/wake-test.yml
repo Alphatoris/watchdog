@@ -1,0 +1,17 @@
+name: wake-test
+on:
+  push:
+    branches: [claude/wake-pr-test]
+permissions:
+  pull-requests: write
+  issues: write
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Comment on the wake PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment 5 --repo "$GITHUB_REPOSITORY" --body "Wake test comment from Actions at $(date -u +%H:%M:%SZ)"
