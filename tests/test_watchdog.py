@@ -122,6 +122,16 @@ class T(unittest.TestCase):
             self.assertEqual(r["projects"]["P0"]["wake_route"], route)
             self.assertEqual("wake_pr" in sent[0], route == "pr_comment")
 
+    def test_pr_wake_unacked_after_two_ticks_then_acked(self):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        state, sent, routes = {}, [], []
+        for i, ack in enumerate((False, False, False, True)):
+            r = w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1, lambda pr, at, a=ack: a)
+            routes.append(r["projects"]["P0"]["wake_route"])
+        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_comment"])
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
