@@ -227,6 +227,26 @@ class T(unittest.TestCase):
                 self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
         self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
 
+    def test_public_label_is_required_and_never_a_hash(self):
+        good = REG["projects"][0]
+        cases = {"missing": {"project": "p1"}, "malformed": {"project": "p1", "public_label": "axiomera"},
+                 "not a string": {"project": "p1", "public_label": 7}}
+        for name, bad in cases.items():
+            src = Src([item()])
+            src.f[w.REGISTRY_PATH] = {"projects": [bad, good]}
+            r = w.run_tick(src, {}, T0, lambda p: True, 1)
+            self.assertEqual(r["projects"]["E0"], {"error": "project_error"}, name)
+            self.assertEqual(r["errors"], 1, name)
+            self.assertNotIn("p1", json.dumps(r), name)
+            self.assertIn("P0", r["projects"], name)               # the other project is unaffected
+
+    def test_shared_public_label_is_an_error_for_both(self):
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [REG["projects"][0], dict(REG["projects"][0], project="other")]}
+        r = w.run_tick(src, {}, T0, lambda p: True, 1)
+        self.assertEqual(r["errors"], 2)
+        self.assertEqual(sorted(r["projects"]), ["E0", "E1"])
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
@@ -261,14 +281,14 @@ class T(unittest.TestCase):
 
     def test_b2_naive_time_is_utc_and_bad_project_is_isolated(self):
         self.assertEqual(w.parse("2026-10-28T09:00:00").tzinfo, timezone.utc)
-        reg = {"projects": [{"project": "bad", "public_label": "B"}, REG["projects"][0]]}
+        reg = {"projects": [{"project": "bad", "public_label": "PB"}, REG["projects"][0]]}
         s = Src([item()])
         s.f[w.REGISTRY_PATH] = reg
         s.f["projects/bad/stages/OPEN-ITEMS.json"] = {"items": [{"id": "x", "due": "not a time"}]}
         sent = []
         feed = w.run_tick(s, {}, T0, lambda p: sent.append(p) or True, 1)
         self.assertEqual(feed["errors"], 1)
-        self.assertEqual(feed["projects"]["B"], {"error": "project_error"})
+        self.assertEqual(feed["projects"]["PB"], {"error": "project_error"})
         self.assertEqual(len(sent), 1)           # the good project still woke
 
     def test_b5_payload_carries_no_session_ids(self):
