@@ -9,7 +9,7 @@ phone push after 2 more. Each step once. Reserved items never climb the ladder.
 The public repo holds no project data: state keys are hashes, the feed holds
 counts, stage names and times under opaque labels.
 """
-import argparse, base64, hashlib, json, os, sys, urllib.request, urllib.error
+import argparse, base64, hashlib, json, os, re, sys, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone
 
 LIBRARY = "Alphatoris/Alphatoris-Library"
@@ -131,7 +131,9 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
                              "stage_updated": (stage or {}).get("updated"),
-                             "wake_route": ("pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
+                             "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
+        if e.get("wake_pr") and not valid_pr(e.get("wake_pr")):
+            print(f"bad wake_pr for {label_of(e)}: ignored", file=sys.stderr)
         for item, due, reserved in late:
             if reserved:
                 continue                       # never climbs the ladder
@@ -145,6 +147,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     pw["acked"] = True
                 elif tick_no - pw["tick"] >= PR_ACK_TICKS:
                     s["pr_down"] = "pr_unacked"                      # lost wake: later steps use the ladder's other route
+                    s["steps"] = [x for x in s["steps"] if x != 1]   # and step 1 is sent again by the wake runner
+                    del s["pr_wake"]
             if s.get("pr_down"):
                 feed[label_of(e)]["wake_route"] = s["pr_down"]
             for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
@@ -174,6 +178,11 @@ def run_tick(source, state, now, send, tick_no, acked=None):
 
 
 SUBSCRIBER_MAX_AGE = timedelta(hours=12)
+PR_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$")
+
+
+def valid_pr(x):
+    return isinstance(x, str) and bool(PR_RE.fullmatch(x))
 PR_ACK_TICKS = 2
 
 
@@ -182,7 +191,7 @@ def subscriber_ok(e, now):
     GitHub's subscription itself, so a missing or old record falls back to the hourly guard and the feed says so."""
     sub = e.get("wake_subscriber") or {}
     t = parse(sub.get("subscribed_at"))
-    return bool(sub.get("session_id") and t and timedelta(0) <= now - t <= SUBSCRIBER_MAX_AGE)   # a future time is rejected
+    return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and timedelta(0) <= now - t <= SUBSCRIBER_MAX_AGE)   # a future time is rejected
 
 
 def comment_wake(wake_pr, label, step, token):
@@ -209,7 +218,8 @@ def pr_acked(token):
                                      headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
-                return any(c.get("user", {}).get("type") != "Bot" and c.get("author_association") in ("OWNER", "MEMBER") for c in json.load(r))
+                return any(c.get("user", {}).get("type") != "Bot" and c.get("author_association") in ("OWNER", "MEMBER")
+                           and c.get("created_at", "") >= since_iso for c in json.load(r))
         except Exception as ex:
             print(f"ack check failed: {ex}", file=sys.stderr)
             return False
