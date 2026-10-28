@@ -106,11 +106,13 @@ class RegistryError(Exception):
     pass
 
 
-def run_tick(source, state, now, send, tick_no):
+def run_tick(source, state, now, send, tick_no, acked=None):
     registry = source.get(REGISTRY_PATH)
     if not isinstance(registry, dict) or not isinstance(registry.get("projects"), list):
         raise RegistryError("REGISTRY.json missing or malformed")   # fails the run: never a green empty feed
     entries = list(registry["projects"])
+    prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
+    dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
     for e in entries:
         try:
@@ -128,7 +130,8 @@ def run_tick(source, state, now, send, tick_no):
         feed[label_of(e)] = {"stage": (stage or {}).get("stage"), "stage_name": (stage or {}).get("stage_name"),
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]), "reserved_waiting": len([l for l in late if l[2]]),
-                             "stage_updated": (stage or {}).get("updated")}
+                             "stage_updated": (stage or {}).get("updated"),
+                             "wake_route": ("pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         for item, due, reserved in late:
             if reserved:
                 continue                       # never climbs the ladder
@@ -136,14 +139,33 @@ def run_tick(source, state, now, send, tick_no):
             seen.add(k)
             s = state.setdefault(k, {"first_tick": tick_no, "steps": []})
             age = tick_no - s["first_tick"]
+            pw = s.get("pr_wake")              # a PR-comment wake must be acknowledged by the subscriber
+            if pw and not pw["acked"] and acked:
+                if acked(pw["pr"], pw["at"]):
+                    pw["acked"] = True
+                elif tick_no - pw["tick"] >= PR_ACK_TICKS:
+                    s["pr_down"] = "pr_unacked"                      # lost wake: later steps use the ladder's other route
+            if s.get("pr_down"):
+                feed[label_of(e)]["wake_route"] = s["pr_down"]
             for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
                 if step in s["steps"] or age < need:
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
-                if send(payload):
+                if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
+                    payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
+                    payload["label"] = label_of(e)
+                ok = send(payload)
+                if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
+                    s["pr_down"] = "pr_failed"
+                    feed[label_of(e)]["wake_route"] = "pr_failed"
+                    payload.pop("wake_pr"); payload.pop("label", None)
+                    ok = send(payload)                               # same step, by the existing route, in this tick
+                if ok:
                     s["steps"].append(step)
+                    if payload.get("wake_pr"):
+                        s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
                 break                          # one step per tick
     for k in list(state):                      # closed or re-dated items drop out
         if k not in seen:
@@ -151,8 +173,53 @@ def run_tick(source, state, now, send, tick_no):
     return {"tick_at": iso(now), "projects": feed, "errors": errors}
 
 
+SUBSCRIBER_MAX_AGE = timedelta(hours=12)
+PR_ACK_TICKS = 2
+
+
+def subscriber_ok(e, now):
+    """The wake PR is used only while the registry names a subscriber session, subscribed recently. The script cannot see
+    GitHub's subscription itself, so a missing or old record falls back to the hourly guard and the feed says so."""
+    sub = e.get("wake_subscriber") or {}
+    t = parse(sub.get("subscribed_at"))
+    return bool(sub.get("session_id") and t and timedelta(0) <= now - t <= SUBSCRIBER_MAX_AGE)   # a future time is rejected
+
+
+def comment_wake(wake_pr, label, step, token):
+    """Comment on the project's wake pull request; a subscribed session wakes in seconds. Public text: label and step only."""
+    repo, num = wake_pr.rsplit("#", 1)
+    body = json.dumps({"body": f"Watchdog wake: {label} step {step}"}).encode()
+    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
+                                 method="POST", headers={"Authorization": f"Bearer {token}",
+                                                         "Accept": "application/vnd.github+json",
+                                                         "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return 200 <= r.status < 300
+    except Exception as ex:
+        print(f"comment wake failed: {ex}", file=sys.stderr)
+        return False
+
+
+def pr_acked(token):
+    """True if a person or session (not the Actions bot) commented on the wake PR after the wake; None-safe on errors."""
+    def acked(wake_pr, since_iso):
+        repo, num = wake_pr.rsplit("#", 1)
+        req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments?since={since_iso}",
+                                     headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return any(c.get("user", {}).get("type") != "Bot" and c.get("author_association") in ("OWNER", "MEMBER") for c in json.load(r))
+        except Exception as ex:
+            print(f"ack check failed: {ex}", file=sys.stderr)
+            return False
+    return acked
+
+
 def fire_wake(url, key):
     def send(payload):
+        if payload.get("wake_pr"):
+            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""))
         if not url:
             print("WAKE_URL not set; not sending", file=sys.stderr)
             return False
@@ -186,7 +253,7 @@ def main():
     send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
     try:
-        feed = run_tick(src, st["items"], now, send, st["tick_no"])
+        feed = run_tick(src, st["items"], now, send, st["tick_no"], pr_acked(os.environ.get("GH_TOKEN", "")))
     except RegistryError as ex:
         print(f"FAILED: {ex}", file=sys.stderr)
         sys.exit(1)

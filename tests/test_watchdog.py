@@ -95,6 +95,100 @@ class T(unittest.TestCase):
         self.assertEqual(r["projects"]["P0"]["state"], "paused")
         self.assertEqual(r["projects"]["P0"]["late"], 0)
 
+    def test_wake_pr_payload_and_public_text(self):
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], public_label="P9", wake_pr="o/r#5", wake_subscriber={"session_id": "session_X", "subscribed_at": "2026-10-28T09:00:00Z"})]}
+        sent = []
+        w.run_tick(src, {}, T0, lambda p: sent.append(p) or True, 1)
+        self.assertEqual((sent[0]["wake_pr"], sent[0]["label"]), ("o/r#5", "P9"))
+        seen = []
+        orig = w.urllib.request.urlopen
+        w.urllib.request.urlopen = lambda req, timeout=0: seen.append(req) or type("R", (), {"status": 201, "__enter__": lambda s: s, "__exit__": lambda s, *a: None})()
+        try:
+            self.assertTrue(w.fire_wake("", "")(sent[0]))
+        finally:
+            w.urllib.request.urlopen = orig
+        self.assertTrue(seen[0].full_url.endswith("/repos/o/r/issues/5/comments"))
+        self.assertNotIn(b"watchdog-test", seen[0].data)
+
+    def test_wake_pr_needs_a_recent_subscriber(self):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5")
+        for sub, route in ((None, "hourly_guard_only"), ({"session_id": "s", "subscribed_at": "2026-10-27T09:00:00Z"}, "hourly_guard_only"),
+                           ({"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, "pr_comment")):
+            src = Src([item()])
+            src.f[w.REGISTRY_PATH] = {"projects": [dict(reg, wake_subscriber=sub)]}
+            sent = []
+            r = w.run_tick(src, {}, T0, lambda p: sent.append(p) or True, 1)
+            self.assertEqual(r["projects"]["P0"]["wake_route"], route)
+            self.assertEqual("wake_pr" in sent[0], route == "pr_comment")
+
+    def test_pr_wake_unacked_after_two_ticks_then_acked(self):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        state, sent, routes = {}, [], []
+        for i, ack in enumerate((False, False, False, True)):
+            r = w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1, lambda pr, at, a=ack: a)
+            routes.append(r["projects"]["P0"]["wake_route"])
+        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_unacked"])   # sticky for this item
+
+    def _pr_src(self, **k):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, **k)
+        src = Src([item()])
+        src.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        return src
+
+    def test_b1_pr_wakes_step_one_only_and_unacked_falls_back_to_runner(self):
+        sent, state = [], {}
+        for i in range(8):
+            w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (2, False), (3, False)])
+
+    def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
+        sent = []
+        def send(p):
+            sent.append(dict(p))
+            return "wake_pr" not in p                      # the comment is refused, the runner works
+        state = {}
+        r = w.run_tick(self._pr_src(), state, T0, send, 1)
+        self.assertEqual([("wake_pr" in p) for p in sent], [True, False])
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_failed")
+        sent.clear()
+        r = w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5), send, 2)
+        self.assertEqual(sent, [])                          # step 1 is recorded, no retry loop
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_failed")
+
+    def test_future_subscribe_time_is_rejected(self):
+        e = {"wake_pr": "o/r#5", "wake_subscriber": {"session_id": "s", "subscribed_at": "2026-10-28T11:00:00Z"}}
+        self.assertFalse(w.subscriber_ok(e, T0))
+
+    def test_shared_wake_pr_is_not_used(self):
+        src = self._pr_src()
+        other = dict(REG["projects"][0], project="other", public_label="P8", wake_pr="o/r#5",
+                     wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        src.f[w.REGISTRY_PATH]["projects"].append(other)
+        sent = []
+        r = w.run_tick(src, {}, T0, lambda p: sent.append(dict(p)) or True, 1)
+        self.assertNotIn("wake_pr", sent[0])
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "hourly_guard_only")
+
+    def test_ack_only_from_owner_or_member_not_bot(self):
+        orig = w.urllib.request.urlopen
+        def fake(comments):
+            class R:
+                def __enter__(s): return s
+                def __exit__(s, *a): pass
+                def read(s, *a): return json.dumps(comments).encode()
+            return lambda req, timeout=0: R()
+        try:
+            for comments, want in (([{"user": {"type": "Bot"}, "author_association": "NONE"}], False),
+                                   ([{"user": {"type": "User"}, "author_association": "NONE"}], False),
+                                   ([{"user": {"type": "User"}, "author_association": "OWNER"}], True)):
+                w.urllib.request.urlopen = fake(comments)
+                self.assertEqual(w.pr_acked("t")("o/r#5", "2026-10-28T10:00:00Z"), want)
+        finally:
+            w.urllib.request.urlopen = orig
+
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}
         sent = []
