@@ -142,7 +142,7 @@ class T(unittest.TestCase):
         sent, state = [], {}
         for i in range(8):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
-        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (2, False), (3, False)])
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
 
     def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
         sent = []
@@ -183,11 +183,31 @@ class T(unittest.TestCase):
         try:
             for comments, want in (([{"user": {"type": "Bot"}, "author_association": "NONE"}], False),
                                    ([{"user": {"type": "User"}, "author_association": "NONE"}], False),
-                                   ([{"user": {"type": "User"}, "author_association": "OWNER"}], True)):
+                                   ([{"user": {"type": "User"}, "author_association": "OWNER", "created_at": "2026-10-28T10:01:00Z"}], True),
+                                   ([{"user": {"type": "User"}, "author_association": "OWNER", "created_at": "2026-10-28T09:00:00Z"}], False)):
                 w.urllib.request.urlopen = fake(comments)
                 self.assertEqual(w.pr_acked("t")("o/r#5", "2026-10-28T10:00:00Z"), want)
         finally:
             w.urllib.request.urlopen = orig
+
+    def test_b6_malformed_wake_pr_does_not_crash_the_tick(self):
+        for bad in ("Alphatoris/watchdog", "x#1", "a/b#c", 5, "a/b#1\n"):
+            src = self._pr_src()
+            src.f[w.REGISTRY_PATH]["projects"][0]["wake_pr"] = bad
+            other = dict(REG["projects"][0], project="other", public_label="P8")
+            src.f[w.REGISTRY_PATH]["projects"].append(other)
+            src.f["projects/other/stages/OPEN-ITEMS.json"] = {"items": [item()]}
+            sent = []
+            r = w.run_tick(src, {}, T0, lambda p: sent.append(dict(p)) or True, 1)
+            self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_failed")
+            self.assertTrue(all("wake_pr" not in p for p in sent))
+            self.assertEqual(len(sent), 2)                  # both projects still woken
+
+    def test_n16_unacked_step_one_is_sent_again_by_the_runner(self):
+        sent, state = [], {}
+        for i in range(5):
+            w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
 
     def test_stage_checkpoint(self):
         s = {"stage": 2, "stage_name": "Requirements", "state": "blocked", "next_checkpoint": "2026-10-28T09:00:00Z"}

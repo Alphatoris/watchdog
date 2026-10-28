@@ -8,3 +8,6 @@ Run the tests: `python3 -m unittest -v tests/test_watchdog.py`
 Dry run on fixtures: `python3 watchdog.py --out /tmp/out --fixtures <dir> --dry-run`
 
 Unverified until live: the exact request format of the wake runner's fire endpoint (`fire_wake` in `watchdog.py`).
+
+## PR-comment wake (fast route)
+Per project, a long-lived draft "wake page" pull request in this repository (never merged, conversation locked). At ladder step 1 the script comments `Watchdog wake: <label> step 1` there with the workflow token (`pull-requests: write`). A standing thread of the project is subscribed to that PR; it wakes in seconds, replies with the single word `ack` (never project detail; the script counts only non-bot OWNER or MEMBER comments created after the wake), and messages its coordinator. The registry entry holds `wake_pr` (`owner/repo#n`, validated), and `wake_subscriber` (`session_id`, `subscribed_at`, under 12 hours old, not in the future). No ack within 2 ticks, a refused comment, a malformed `wake_pr` or a shared one: the item falls back to the wake runner and the hourly guard, and the feed shows `wake_route` `pr_unacked`, `pr_failed` or `hourly_guard_only`. Steps 2 and 3 never use the PR.
