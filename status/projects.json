@@ -1,6 +1,6 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 299,
+ "gap_seconds_since_last_tick": 300,
  "lag_seconds_past_5min_mark": 233,
  "projects": {
   "P0": {
@@ -31,6 +31,6 @@
    "state": "other"
   }
  },
- "tick_at": "2026-10-28T14:48:53Z",
- "tick_no": 60
+ "tick_at": "2026-10-28T14:53:53Z",
+ "tick_no": 61
 }
