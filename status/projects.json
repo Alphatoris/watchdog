@@ -1,7 +1,7 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 300,
- "lag_seconds_past_5min_mark": 187,
+ "gap_seconds_since_last_tick": 301,
+ "lag_seconds_past_5min_mark": 188,
  "projects": {
   "P0": {
    "late": 0,
@@ -60,6 +60,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-29T14:08:07Z",
- "tick_no": 345
+ "tick_at": "2026-10-29T14:13:08Z",
+ "tick_no": 346
 }
