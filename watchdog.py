@@ -161,6 +161,9 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             seen.add(pk)
             if feed[lab]["wake_route"] == "pr_comment":
                 feed[lab]["wake_route"] = "pr_unacked"
+        probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked or (lambda pr, at: False), feed)
+        if probe_late:
+            late.append(probe_late)
         if bad_label:
             errors += 1                          # loud for the coordinator (guard lists projects with an error key)
             feed[lab]["error"] = "bad_label"
@@ -174,6 +177,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             seen.add(k)
             s = state.setdefault(k, {"first_tick": tick_no, "steps": []})
             age = tick_no - s["first_tick"]
+            if item == "relay-probe":
+                s["pr_down"] = feed[lab]["wake_route"]   # the relay is the thing that is down: the ladder never uses its PR
             pw = s.get("pr_wake")              # a PR-comment wake must be acknowledged by the subscriber
             if pw and not pw["acked"] and acked:
                 if acked(pw["pr"], pw["at"]):
@@ -218,6 +223,37 @@ PR_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$")
 def valid_pr(x):
     return isinstance(x, str) and bool(PR_RE.fullmatch(x))
 PR_ACK_TICKS = 2
+PROBE_HOUR_UTC = 6                       # once a day, on the first tick of this hour, each relay gets a probe
+PROBE_GAP = timedelta(hours=20)
+
+
+def relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked, feed):
+    """Once a day, comment a probe on a project's wake PR. A probe with no ack within PR_ACK_TICKS ticks marks the relay
+    down: the feed shows pr_unacked (or pr_failed when the comment was refused), and one late item, relay-probe, goes up
+    the ladder (wake runner to the coordinator, then the Delivery Lead, then the owner). It clears on the next ack.
+    Returns the late item to add, or None. Public text is the label and the word probe only."""
+    if not (subscriber_ok(e, now) and e.get("wake_pr") and not e.get("paused")):
+        return None
+    pk = key_of(pid, "probe", "")
+    p = state.get(pk, {})
+    if (p.get("pending") or p.get("down")) and acked(e["wake_pr"], p["at"]):
+        p["pending"], p["down"] = False, None        # the relay answered the probe, or answered late: it is alive
+    elif p.get("pending") and tick_no - p["tick"] >= PR_ACK_TICKS:
+        p["pending"], p["down"] = False, "pr_unacked"
+    elif not p.get("pending") and not p.get("down") and now.hour == PROBE_HOUR_UTC \
+            and (not p.get("last") or now - parse(p["last"]) >= PROBE_GAP):
+        p.update(last=iso(now), tick=tick_no, pending=True, at=iso(now))
+        if not send({"wake_pr": e["wake_pr"], "label": lab, "step": "probe"}):
+            p.update(pending=False, down="pr_failed")
+    if p:
+        state[pk] = p
+        seen.add(pk)
+    else:
+        state.pop(pk, None)
+    if p.get("down"):
+        feed[lab]["wake_route"] = p["down"]
+        return ("relay-probe", p["last"], False)
+    return None
 
 
 def subscriber_ok(e, now):
