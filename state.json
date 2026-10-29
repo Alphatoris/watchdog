@@ -1,18 +1,16 @@
 {
  "items": {
+  "249b3bc181cd13be": {
+   "since": "2026-10-29T06:57:53Z"
+  },
   "77a81fcbd8be90f7": {
    "first_tick": 258,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-29T06:57:53Z",
-    "pr": "Alphatoris/watchdog#9",
-    "tick": 258
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
   }
  },
- "last_tick_at": "2026-10-29T07:02:53Z",
- "tick_no": 259
+ "last_tick_at": "2026-10-29T07:07:53Z",
+ "tick_no": 260
 }

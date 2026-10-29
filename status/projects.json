@@ -57,9 +57,9 @@
    "open": 1,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-29T07:02:53Z",
- "tick_no": 259
+ "tick_at": "2026-10-29T07:07:53Z",
+ "tick_no": 260
 }
