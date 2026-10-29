@@ -1,5 +1,18 @@
 {
- "items": {},
- "last_tick_at": "2026-10-29T05:47:53Z",
- "tick_no": 244
+ "items": {
+  "00c362fcb95bc02b": {
+   "first_tick": 245,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-29T05:52:53Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 245
+   },
+   "steps": [
+    1
+   ]
+  }
+ },
+ "last_tick_at": "2026-10-29T05:52:53Z",
+ "tick_no": 245
 }
