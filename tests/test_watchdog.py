@@ -111,9 +111,10 @@ class T(unittest.TestCase):
         self.assertTrue(seen[0].full_url.endswith("/repos/o/r/issues/5/comments"))
         self.assertNotIn(b"watchdog-test", seen[0].data)
 
-    def test_wake_pr_needs_a_recent_subscriber(self):
+    def test_wake_pr_needs_a_subscriber_record_not_a_recent_one(self):
         reg = dict(REG["projects"][0], wake_pr="o/r#5")
-        for sub, route in ((None, "hourly_guard_only"), ({"session_id": "s", "subscribed_at": "2026-10-27T09:00:00Z"}, "hourly_guard_only"),
+        for sub, route in ((None, "hourly_guard_only"), ({"session_id": "s", "subscribed_at": "2026-10-27T09:00:00Z"}, "pr_comment"),
+                           ({"session_id": "", "subscribed_at": "2026-10-28T09:00:00Z"}, "hourly_guard_only"),
                            ({"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, "pr_comment")):
             src = Src([item()])
             src.f[w.REGISTRY_PATH] = {"projects": [dict(reg, wake_subscriber=sub)]}
