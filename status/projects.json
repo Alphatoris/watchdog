@@ -4,8 +4,8 @@
  "lag_seconds_past_5min_mark": 173,
  "projects": {
   "P0": {
-   "late": 1,
-   "open": 1,
+   "late": 0,
+   "open": 0,
    "stage": null,
    "state": "other",
    "wake_route": "pr_comment"
@@ -25,6 +25,6 @@
    "wake_route": "pr_comment"
   }
  },
- "tick_at": "2026-10-29T05:52:53Z",
- "tick_no": 245
+ "tick_at": "2026-10-29T05:57:53Z",
+ "tick_no": 246
 }
