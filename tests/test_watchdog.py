@@ -375,5 +375,72 @@ class T(unittest.TestCase):
                 self.assertNotIn(banned, json.dumps(feed))
 
 
+class RelayProbe(unittest.TestCase):
+    """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
+    PROBE_T = datetime(2026, 10, 29, 6, 0, tzinfo=timezone.utc)
+
+    def _src(self, **k):
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        reg.update(k)
+        src = Src([])
+        src.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        return src
+
+    def _tick(self, src, state, t, n, sent, ack=False, send_ok=True):
+        def send(p):
+            sent.append(dict(p))
+            return send_ok
+        return w.run_tick(src, state, t, send, n, lambda pr, at: ack)
+
+    def test_probe_sent_once_at_the_probe_hour_and_not_again_the_same_day(self):
+        sent, state = [], {}
+        for i in range(14):                       # 06:00 to 07:05, every 5 minutes
+            self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=True)
+        probes = [p for p in sent if p.get("step") == "probe"]
+        self.assertEqual(len(probes), 1)
+        self.assertEqual((probes[0]["wake_pr"], probes[0]["label"]), ("o/r#5", "P0"))
+
+    def test_no_probe_outside_the_probe_hour(self):
+        sent, state = [], {}
+        self._tick(self._src(), state, datetime(2026, 10, 29, 10, 0, tzinfo=timezone.utc), 1, sent)
+        self.assertEqual([p for p in sent if p.get("step") == "probe"], [])
+
+    def test_unacked_probe_raises_one_late_item_up_the_ladder_and_shows_pr_unacked(self):
+        sent, state, routes = [], {}, []
+        for i in range(8):                        # probe at tick 1, never acked, ladder runs from there
+            r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=False)
+            routes.append(r["projects"]["P0"]["wake_route"])
+        ladder = [(p["step"], p["target"], "wake_pr" in p) for p in sent if p.get("step") != "probe"]
+        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False), (3, "owner", False)])
+        self.assertEqual(routes[-1], "pr_unacked")
+
+    def test_unacked_probe_clears_when_the_relay_acks(self):
+        sent, state, routes = [], {}, []
+        for i in range(3):
+            r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=False)
+            routes.append(r["projects"]["P0"]["wake_route"])
+        r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=15), 4, sent, ack=True)
+        routes.append(r["projects"]["P0"]["wake_route"])
+        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_comment"])
+        self.assertEqual([p["step"] for p in sent if p.get("step") != "probe"], [1])   # the one ladder step, then cleared
+
+    def test_refused_probe_shows_pr_failed(self):
+        sent, state = [], {}
+        r = self._tick(self._src(), state, self.PROBE_T, 1, sent, ack=False, send_ok=False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_failed")
+
+    def test_paused_or_unsubscribed_project_gets_no_probe(self):
+        sent, state = [], {}
+        self._tick(self._src(paused=True), state, self.PROBE_T, 1, sent)
+        self._tick(self._src(wake_subscriber=None), state, self.PROBE_T, 2, sent)
+        self.assertEqual([p for p in sent if p.get("step") == "probe"], [])
+
+    def test_probe_public_text_is_label_and_probe_only(self):
+        sent, state = [], {}
+        self._tick(self._src(), state, self.PROBE_T, 1, sent)
+        probe = [p for p in sent if p.get("step") == "probe"][0]
+        self.assertEqual(set(probe), {"wake_pr", "label", "step"})
+
+
 if __name__ == "__main__":
     unittest.main()
