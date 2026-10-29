@@ -2,16 +2,8 @@
  "items": {
   "249b3bc181cd13be": {
    "since": "2026-10-29T07:47:53Z"
-  },
-  "64406c5f2ce75e83": {
-   "first_tick": 268,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2
-   ]
   }
  },
- "last_tick_at": "2026-10-29T08:02:53Z",
- "tick_no": 271
+ "last_tick_at": "2026-10-29T08:07:53Z",
+ "tick_no": 272
 }
