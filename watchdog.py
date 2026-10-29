@@ -149,6 +149,18 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
+        pk = key_of(pid, "route", "")            # per-project mark: a lost wake keeps the feed off "healthy" until an ack arrives after it
+        mark = state.get(pk)
+        if mark and not valid_pr(e.get("wake_pr")):
+            del state[pk]                        # the wake page is gone from the registry: the mark has no meaning
+            mark = None
+        if mark and acked and acked(e["wake_pr"], mark["since"]):
+            del state[pk]                        # the relay answered after the lost wake: it is alive again
+            mark = None
+        if mark:
+            seen.add(pk)
+            if feed[lab]["wake_route"] == "pr_comment":
+                feed[lab]["wake_route"] = "pr_unacked"
         if bad_label:
             errors += 1                          # loud for the coordinator (guard lists projects with an error key)
             feed[lab]["error"] = "bad_label"
@@ -168,6 +180,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     pw["acked"] = True
                 elif tick_no - pw["tick"] >= PR_ACK_TICKS:
                     s["pr_down"] = "pr_unacked"                      # lost wake: later steps use the ladder's other route
+                    state[pk] = {"since": pw["at"]}                  # and the project stays marked after this item closes
+                    seen.add(pk)
                     s["steps"] = [x for x in s["steps"] if x != 1]   # and step 1 is sent again by the wake runner
                     del s["pr_wake"]
             if s.get("pr_down"):
