@@ -7,10 +7,11 @@
    "first_tick": 258,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   }
  },
- "last_tick_at": "2026-10-29T07:07:53Z",
- "tick_no": 260
+ "last_tick_at": "2026-10-29T07:12:53Z",
+ "tick_no": 261
 }
