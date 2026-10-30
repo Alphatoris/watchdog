@@ -43,7 +43,7 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([item()]), 8, sent)
         self.assertEqual([(p["step"], p["target"]) for p in sent],
-                         [(1, "coordinator"), (2, "delivery_lead"), (3, "owner")])
+                         [(1, "coordinator"), (2, "delivery_lead"), (3, "replacement")])
 
     def test_t2_step_times_are_two_ticks_apart(self):
         sent, state = [], {}
@@ -411,7 +411,7 @@ class RelayProbe(unittest.TestCase):
             r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=False)
             routes.append(r["projects"]["P0"]["wake_route"])
         ladder = [(p["step"], p["target"], "wake_pr" in p) for p in sent if p.get("step") != "probe"]
-        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False), (3, "owner", False)])
+        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False), (3, "replacement", False)])
         self.assertEqual(routes[-1], "pr_unacked")
 
     def test_unacked_probe_clears_when_the_relay_acks(self):
