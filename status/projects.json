@@ -18,8 +18,8 @@
    "wake_route": "hourly_guard_only"
   },
   "P2": {
-   "late": 1,
-   "open": 1,
+   "late": 0,
+   "open": 0,
    "stage": null,
    "state": "other",
    "wake_route": "pr_comment"
@@ -60,6 +60,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-30T08:18:51Z",
- "tick_no": 566
+ "tick_at": "2026-10-30T08:23:51Z",
+ "tick_no": 567
 }
