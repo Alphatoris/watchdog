@@ -55,8 +55,8 @@
   "P7": {
    "late": 0,
    "open": 0,
-   "stage": null,
-   "state": "other",
+   "stage": 0,
+   "state": "in_progress",
    "wake_route": "hourly_guard_only"
   },
   "PT": {
@@ -67,6 +67,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-30T10:54:04Z",
- "tick_no": 598
+ "tick_at": "2026-10-30T10:59:04Z",
+ "tick_no": 599
 }
