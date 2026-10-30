@@ -120,6 +120,7 @@ def late_items(project, stage, items, now):
     return out
 
 
+DL_ONLY = ("stage-without-clearance", "clearance-log-unreadable")   # go to the Delivery Lead only: never the coordinator, never the owner
 CLEARED_RE = re.compile(r"^Cleared through stage:[ \t]*(\d+)[ \t]*$", re.MULTILINE)
 
 
@@ -178,7 +179,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
             get_text = getattr(source, "get_text", None)
             if not paused and get_text:
-                late += clearance_late(stage, get_text(f"projects/{pid}/stages/CLEARANCE-LOG.md"))
+                try:
+                    late += clearance_late(stage, get_text(f"projects/{pid}/stages/CLEARANCE-LOG.md"))
+                except Exception as ex:          # a failed log read must not drop the project's other late items
+                    print(f"clearance log read error: {type(ex).__name__}: {ex}", file=sys.stderr)
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
             feed[lab] = {"error": "project_error"}
@@ -232,7 +236,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     del s["pr_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
-            for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
+            for step, need in (((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS))):
                 if step in s["steps"] or age < need:
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]

@@ -313,7 +313,9 @@ class T(unittest.TestCase):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
         sent = []
         ticks(Src([], s, "# Clearance log\nCleared through stage: 2\n"), 1, sent)
-        self.assertEqual([p["item"] for p in sent], ["stage-without-clearance"])
+        self.assertEqual([(p["item"], p["step"], p["target"]) for p in sent], [("stage-without-clearance", 2, "delivery_lead")])
+        ticks(Src([], s, "Cleared through stage: 2\n"), 8, sent)     # a longer run never reaches the coordinator or the owner
+        self.assertEqual({p["target"] for p in sent}, {"delivery_lead"})
 
     def test_clearance_stage_covered_by_log_is_quiet(self):
         s = {"stage": 2, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
@@ -335,6 +337,14 @@ class T(unittest.TestCase):
         feed = w.run_tick(src, {}, T0, lambda p: True, 1)
         self.assertEqual(feed["projects"]["P0"]["late"], 1)
         self.assertNotIn("clearance", json.dumps(feed))
+
+    def test_clearance_log_read_error_keeps_other_late_items(self):
+        class Bad(Src):
+            def get_text(self, p):
+                raise OSError("boom")
+        sent = []
+        ticks(Bad([item()], {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}, "x"), 1, sent)
+        self.assertEqual([p["item"] for p in sent], ["oi-1"])
 
     def test_feed_has_no_project_names(self):
         feed = w.run_tick(Src([item()]), {}, T0, lambda p: True, 1)
