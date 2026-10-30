@@ -52,6 +52,13 @@
    "state": "other",
    "wake_route": "pr_comment"
   },
+  "P7": {
+   "late": 0,
+   "open": 0,
+   "stage": null,
+   "state": "other",
+   "wake_route": "hourly_guard_only"
+  },
   "PT": {
    "late": 0,
    "open": 0,
@@ -60,6 +67,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-30T10:44:04Z",
- "tick_no": 596
+ "tick_at": "2026-10-30T10:49:04Z",
+ "tick_no": 597
 }
