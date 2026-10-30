@@ -28,7 +28,7 @@
   },
   "3ba1c2858326a3fb": {
    "at": "2026-10-30T06:03:51Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-30T06:03:51Z",
    "pending": false,
    "tick": 539
@@ -39,15 +39,6 @@
    "last": "2026-10-30T06:03:51Z",
    "pending": false,
    "tick": 539
-  },
-  "61c1340d0dc1fcd3": {
-   "first_tick": 541,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
   },
   "a96c6169aba2dfa7": {
    "at": "2026-10-30T06:03:51Z",
@@ -73,6 +64,6 @@
    "tick": 539
   }
  },
- "last_tick_at": "2026-10-30T06:53:51Z",
- "tick_no": 549
+ "last_tick_at": "2026-10-30T06:58:51Z",
+ "tick_no": 550
 }
