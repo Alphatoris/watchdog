@@ -309,7 +309,7 @@ class T(unittest.TestCase):
         self.assertEqual(sent, [])
 
     def test_stage_ahead_of_computed_milestone_is_late(self):
-        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        s = {"stage": 4, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
         sent = []
         ticks(Src([], s, {"accepted_milestone": "M2"}), 1, sent)
         self.assertEqual([(p["item"], p["step"], p["target"]) for p in sent], [("stage-ahead-of-evidence", 2, "delivery_lead")])
@@ -317,10 +317,10 @@ class T(unittest.TestCase):
         self.assertEqual({p["target"] for p in sent}, {"delivery_lead"})
 
     def test_stage_covered_by_computed_milestone_is_quiet(self):
-        s = {"stage": 2, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
-        sent = []
-        ticks(Src([], s, {"accepted_milestone": "M2"}), 1, sent)
-        self.assertEqual(sent, [])
+        for shown, got in ((2, "M2"), (3, "M2"), (1, "M0")):     # working in stage n with M(n-1) is normal
+            sent = []
+            ticks(Src([], {"stage": shown, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}, {"accepted_milestone": got}), 1, sent)
+            self.assertEqual(sent, [], (shown, got))
 
     def test_no_status_is_quiet_unreadable_status_is_reported_none_reached_is_ahead(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
@@ -330,12 +330,12 @@ class T(unittest.TestCase):
         ticks(Src([], s, {"accepted_milestone": "stage 3"}), 1, sent)
         self.assertEqual([p["item"] for p in sent], ["gate-status-unreadable"])
         sent = []
-        ticks(Src([], s, {"accepted_milestone": None}), 1, sent)
+        ticks(Src([], {**s, "stage": 1}, {"accepted_milestone": None}), 1, sent)
         self.assertEqual([p["item"] for p in sent], ["stage-ahead-of-evidence"])
 
     def test_cleared_log_no_longer_counts(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
-        src = Src([], s, {"accepted_milestone": "M1"})
+        src = Src([], s, {"accepted_milestone": "M0"})
         src.get_text = lambda p: "Cleared through stage: 3\n"
         feed = w.run_tick(src, {}, T0, lambda p: True, 1)
         self.assertEqual(feed["projects"]["P0"]["late"], 1)

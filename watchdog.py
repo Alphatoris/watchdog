@@ -126,7 +126,7 @@ MILESTONE_RE = re.compile(r"M([0-6])")
 
 def milestone_late(stage, status):
     """Evidence gate (playbooks rev-051, cycle rules section 18): report-only. STAGE.json describes current work and grants nothing;
-    the gate writes the computed milestone to ledger/status/<project>.json. A stage shown ahead of the computed milestone is reported
+    the gate writes the computed milestone to ledger/status/<project>.json. A stage shown more than one ahead of the computed milestone (working in stage n needs M(n-1)) is reported
     to the Delivery Lead, who coordinates the missing evidence. No status file (gate not enabled or project not configured): nothing
     to compare. A status file without a readable milestone is reported. Never blocks or edits anything."""
     if status is None or not stage:
@@ -141,7 +141,7 @@ def milestone_late(stage, status):
     if got is not None and m is None:
         return [("gate-status-unreadable", "", False)]
     reached = int(m.group(1)) if m else -1    # None: not even M0
-    if shown > reached:
+    if shown > reached + 1:                     # working in stage n needs M(n-1); further ahead has no evidence under it
         return [("stage-ahead-of-evidence", "", False)]
     return []
 
