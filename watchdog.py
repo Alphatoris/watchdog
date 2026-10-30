@@ -4,8 +4,9 @@ wakes through the wake runner, writes a status feed. Standard library only.
 
 Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
-coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 the owner list and
-phone push after 2 more. Each step once. Reserved items never climb the ladder.
+coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 replaces the quiet coordinator
+session (the wake runner starts a fresh one and delivers the item to it) after 2 more.
+The owner is never the message carrier (release 1.2, Aamer 30 Oct 2026). Each step once. Reserved items never climb the ladder.
 The public repo holds no project data: state keys are keyed hashes (HMAC), and the
 feed holds, per project, only a stage number, a state word, counts of open and late
 items and a wake-route word, under opaque labels. The only times in the published
@@ -194,7 +195,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             for step, need in ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS)):
                 if step in s["steps"] or age < need:
                     continue
-                target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
+                target = {1: "coordinator", 2: "delivery_lead", 3: "replacement"}[step]
                 payload = {"project": pid, "item": item, "due": due, "step": step, "target": target,
                            "sent_at": iso(now)}     # no session ids: the runner reads them from the registry only
                 if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
