@@ -53,10 +53,10 @@
    "wake_route": "pr_comment"
   },
   "P7": {
-   "late": 0,
+   "late": 1,
    "open": 0,
    "stage": 1,
-   "state": "waiting_on_aamer",
+   "state": "in_progress",
    "wake_route": "pr_comment"
   },
   "PT": {
@@ -67,6 +67,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-30T18:05:26Z",
- "tick_no": 685
+ "tick_at": "2026-10-30T18:10:26Z",
+ "tick_no": 686
 }
