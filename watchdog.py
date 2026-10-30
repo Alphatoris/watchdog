@@ -231,7 +231,7 @@ PROBE_GAP = timedelta(hours=20)
 def relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked, feed):
     """Once a day, comment a probe on a project's wake PR. A probe with no ack within PR_ACK_TICKS ticks marks the relay
     down: the feed shows pr_unacked (or pr_failed when the comment was refused), and one late item, relay-probe, goes up
-    the ladder (wake runner to the coordinator, then the Delivery Lead, then the owner). It clears on the next ack.
+    the ladder (wake runner to the coordinator, then the Delivery Lead, then a replacement of the coordinator session). It clears on the next ack.
     Returns the late item to add, or None. Public text is the label and the word probe only."""
     if not (subscriber_ok(e, now) and e.get("wake_pr") and not e.get("paused")):
         return None
