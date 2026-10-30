@@ -120,24 +120,29 @@ def late_items(project, stage, items, now):
     return out
 
 
-DL_ONLY = ("stage-without-clearance", "clearance-log-unreadable")   # go to the Delivery Lead only: never the coordinator, never the owner
-CLEARED_RE = re.compile(r"^Cleared through stage:[ \t]*(\d+)[ \t]*$", re.MULTILINE)
+DL_ONLY = ("stage-ahead-of-evidence", "gate-status-unreadable")   # go to the Delivery Lead only: never the coordinator, never the owner
+MILESTONE_RE = re.compile(r"M([0-6])")
 
 
-def clearance_late(stage, log_text):
-    """Stage clearance (playbooks cycle rules section 18): report-only. A project that has a CLEARANCE-LOG.md must not show a
-    stage later than the log's header line `Cleared through stage: N`. No log: nothing to compare, no item (the Delivery Lead
-    opens each log). A log with no readable header line cannot be compared and is reported. Never blocks or edits anything."""
-    if log_text is None or not stage:
+def milestone_late(stage, status):
+    """Evidence gate (playbooks rev-051, cycle rules section 18): report-only. STAGE.json describes current work and grants nothing;
+    the gate writes the computed milestone to ledger/status/<project>.json. A stage shown ahead of the computed milestone is reported
+    to the Delivery Lead, who coordinates the missing evidence. No status file (gate not enabled or project not configured): nothing
+    to compare. A status file without a readable milestone is reported. Never blocks or edits anything."""
+    if status is None or not stage:
         return []
     shown = stage.get("stage")
     if isinstance(shown, bool) or not isinstance(shown, int):
         return []
-    m = CLEARED_RE.search(log_text)
-    if m is None:
-        return [("clearance-log-unreadable", "", False)]
-    if shown > int(m.group(1)):
-        return [("stage-without-clearance", "", False)]
+    if not isinstance(status, dict) or "accepted_milestone" not in status:
+        return [("gate-status-unreadable", "", False)]
+    got = status["accepted_milestone"]
+    m = MILESTONE_RE.fullmatch(got) if isinstance(got, str) else None
+    if got is not None and m is None:
+        return [("gate-status-unreadable", "", False)]
+    reached = int(m.group(1)) if m else -1    # None: not even M0
+    if shown > reached:
+        return [("stage-ahead-of-evidence", "", False)]
     return []
 
 
@@ -177,12 +182,11 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
-            get_text = getattr(source, "get_text", None)
-            if not paused and get_text:
+            if not paused:
                 try:
-                    late += clearance_late(stage, get_text(f"projects/{pid}/stages/CLEARANCE-LOG.md"))
-                except Exception as ex:          # a failed log read must not drop the project's other late items
-                    print(f"clearance log read error: {type(ex).__name__}: {ex}", file=sys.stderr)
+                    late += milestone_late(stage, source.get(f"ledger/status/{pid}.json"))
+                except Exception as ex:          # a failed status read must not drop the project's other late items
+                    print(f"gate status read error: {type(ex).__name__}: {ex}", file=sys.stderr)
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
             feed[lab] = {"error": "project_error"}
