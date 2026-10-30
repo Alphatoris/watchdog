@@ -17,15 +17,6 @@
    "pending": false,
    "tick": 539
   },
-  "2c7b3714f771accb": {
-   "first_tick": 541,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
-  },
   "3ba1c2858326a3fb": {
    "at": "2026-10-30T06:03:51Z",
    "down": null,
@@ -35,26 +26,17 @@
   },
   "475103cde240408a": {
    "at": "2026-10-30T06:03:51Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-30T06:03:51Z",
    "pending": false,
    "tick": 539
   },
   "a96c6169aba2dfa7": {
    "at": "2026-10-30T06:03:51Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-30T06:03:51Z",
    "pending": false,
    "tick": 539
-  },
-  "f0dd8d27d8308e53": {
-   "first_tick": 541,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
   },
   "fe15919007ec3d74": {
    "at": "2026-10-30T06:03:51Z",
@@ -64,6 +46,6 @@
    "tick": 539
   }
  },
- "last_tick_at": "2026-10-30T07:28:51Z",
- "tick_no": 556
+ "last_tick_at": "2026-10-30T07:33:51Z",
+ "tick_no": 557
 }
