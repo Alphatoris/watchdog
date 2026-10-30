@@ -70,9 +70,27 @@ class GitHubSource:
             raise
 
 
+    def get_text(self, path):
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref=main",
+            headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github.raw+json",
+                     "X-GitHub-Api-Version": "2022-11-28"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            raise
+
+
 class DirSource:
     def __init__(self, root):
         self.root = root
+
+    def get_text(self, path):
+        p = os.path.join(self.root, path)
+        return open(p, encoding="utf-8").read() if os.path.exists(p) else None
 
     def get(self, path):
         p = os.path.join(self.root, path)
@@ -100,6 +118,26 @@ def late_items(project, stage, items, now):
         if cp and cp < now and st not in CLOSED_STAGE_STATES and not stage.get("stage_ended"):
             out.append(("stage-checkpoint", stage["next_checkpoint"], False))
     return out
+
+
+CLEARED_RE = re.compile(r"^Cleared through stage:[ \t]*(\d+)[ \t]*$", re.MULTILINE)
+
+
+def clearance_late(stage, log_text):
+    """Stage clearance (playbooks cycle rules section 18): report-only. A project that has a CLEARANCE-LOG.md must not show a
+    stage later than the log's header line `Cleared through stage: N`. No log: nothing to compare, no item (the Delivery Lead
+    opens each log). A log with no readable header line cannot be compared and is reported. Never blocks or edits anything."""
+    if log_text is None or not stage:
+        return []
+    shown = stage.get("stage")
+    if isinstance(shown, bool) or not isinstance(shown, int):
+        return []
+    m = CLEARED_RE.search(log_text)
+    if m is None:
+        return [("clearance-log-unreadable", "", False)]
+    if shown > int(m.group(1)):
+        return [("stage-without-clearance", "", False)]
+    return []
 
 
 STATE_WORDS = (("waiting_on_aamer", ("waiting on aamer", "waiting_on_aamer")), ("blocked", ("block",)),
@@ -138,6 +176,9 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
+            get_text = getattr(source, "get_text", None)
+            if not paused and get_text:
+                late += clearance_late(stage, get_text(f"projects/{pid}/stages/CLEARANCE-LOG.md"))
         except Exception as ex:                  # one bad project never stops the others
             errors += 1
             feed[lab] = {"error": "project_error"}

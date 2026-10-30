@@ -9,7 +9,8 @@ REG = {"delivery_lead_session_id": "session_DL", "projects": [
 
 
 class Src:
-    def __init__(self, items=None, stage=None):
+    def __init__(self, items=None, stage=None, log=None):
+        self.log = log
         self.f = {w.REGISTRY_PATH: REG,
                   "projects/watchdog-test/stages/OPEN-ITEMS.json": {"items": items or []}}
         if stage:
@@ -17,6 +18,9 @@ class Src:
 
     def get(self, p):
         return self.f.get(p)
+
+    def get_text(self, p):
+        return self.log if p == "projects/watchdog-test/stages/CLEARANCE-LOG.md" else None
 
 
 def item(**k):
@@ -304,6 +308,33 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([], s), 1, sent)
         self.assertEqual(sent, [])
+
+    def test_clearance_stage_ahead_of_log_is_late(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        sent = []
+        ticks(Src([], s, "# Clearance log\nCleared through stage: 2\n"), 1, sent)
+        self.assertEqual([p["item"] for p in sent], ["stage-without-clearance"])
+
+    def test_clearance_stage_covered_by_log_is_quiet(self):
+        s = {"stage": 2, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        sent = []
+        ticks(Src([], s, "Cleared through stage: 2\n"), 1, sent)
+        self.assertEqual(sent, [])
+
+    def test_clearance_no_log_is_quiet_unreadable_log_is_reported(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        sent = []
+        ticks(Src([], s, None), 1, sent)
+        self.assertEqual(sent, [])
+        ticks(Src([], s, "no header here"), 1, sent)
+        self.assertEqual([p["item"] for p in sent], ["clearance-log-unreadable"])
+
+    def test_clearance_counts_in_late_and_feed_has_no_extra_fields(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        src = Src([], s, "Cleared through stage: 1\n")
+        feed = w.run_tick(src, {}, T0, lambda p: True, 1)
+        self.assertEqual(feed["projects"]["P0"]["late"], 1)
+        self.assertNotIn("clearance", json.dumps(feed))
 
     def test_feed_has_no_project_names(self):
         feed = w.run_tick(Src([item()]), {}, T0, lambda p: True, 1)
