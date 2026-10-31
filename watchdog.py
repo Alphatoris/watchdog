@@ -272,6 +272,9 @@ PR_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$")
 def valid_pr(x):
     return isinstance(x, str) and bool(PR_RE.fullmatch(x))
 PR_ACK_TICKS = 2
+# Relays now comment as the agent account, which GitHub reports as COLLABORATOR. Its id AND login must both match (the id
+# cannot be spoofed by renaming, the login catches a reused id in a fixture), so no other collaborator counts.
+ACK_AGENTS = ((350444722, "alphatoris-agent"),)
 PROBE_HOUR_UTC = 6                       # once a day, on the first tick of this hour, each relay gets a probe
 PROBE_GAP = timedelta(hours=20)
 
@@ -331,6 +334,15 @@ def comment_wake(wake_pr, label, step, token):
         return False
 
 
+def is_ack(c, since_iso):
+    """A wake page comment is an acknowledgement if it is non-bot, created after the wake, and written by the owner or a
+    member or by a configured agent account (ACK_AGENTS: id and login both match)."""
+    u = c.get("user") or {}
+    if u.get("type") == "Bot" or c.get("created_at", "") < since_iso:
+        return False
+    return c.get("author_association") in ("OWNER", "MEMBER") or (u.get("id"), u.get("login")) in ACK_AGENTS
+
+
 def pr_acked(token):
     """True if a person or session (not the Actions bot) commented on the wake PR after the wake; None-safe on errors."""
     def acked(wake_pr, since_iso):
@@ -339,8 +351,7 @@ def pr_acked(token):
                                      headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
-                return any(c.get("user", {}).get("type") != "Bot" and c.get("author_association") in ("OWNER", "MEMBER")
-                           and c.get("created_at", "") >= since_iso for c in json.load(r))
+                return any(is_ack(c, since_iso) for c in json.load(r))
         except Exception as ex:
             print(f"ack check failed: {ex}", file=sys.stderr)
             return False
