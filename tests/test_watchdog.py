@@ -735,6 +735,92 @@ class Step2OnDlPage(unittest.TestCase):
         self.assertEqual(seen, ["Watchdog wake: P1 step 2 (for P0)", "Watchdog wake: P0 step 1", "Watchdog wake: P1 step 2"])
 
 
+class FastPass(unittest.TestCase):
+    """A fast pass (every minute between the 5-minute ticks) wakes for a new late item at once but never moves the ladder clock."""
+    def _fx(self, fx, items):
+        for p, v in Src(items).f.items():
+            os.makedirs(os.path.dirname(os.path.join(fx, p)), exist_ok=True)
+            with open(os.path.join(fx, p), "w") as fh:
+                json.dump(v, fh)
+
+    def _main(self, d, fx, now, fast):
+        import contextlib, io
+        sys.argv = ["w", "--out", d, "--fixtures", fx, "--now", now, "--dry-run"] + (["--fast"] if fast else [])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            w.main()
+        return [json.loads(x.split("wake ", 1)[1])["step"] for x in buf.getvalue().splitlines() if x.startswith("DRY-RUN wake")]
+
+    def _state(self, d):
+        with open(os.path.join(d, "state.json")) as fh:
+            return json.load(fh)
+
+    def test_fast_pass_wakes_a_new_item_without_counting_a_tick_or_publishing_the_feed(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            steps = self._main(d, fx, "2026-10-28T10:01:00Z", True)
+            self.assertEqual(steps, [1])
+            st = self._state(d)
+            self.assertEqual(st["tick_no"], 0)
+            self.assertNotIn("last_tick_at", st)
+            self.assertFalse(os.path.exists(os.path.join(d, "status/projects.json")))
+            self.assertFalse(os.path.exists(os.path.join(d, "ticks.jsonl")))
+
+    def test_the_next_five_minute_tick_does_not_send_it_again(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:01:00Z", True), [1])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:02:00Z", True), [])        # nothing new
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:05:00Z", False), [])       # the tick itself: no repeat
+            self.assertEqual(self._state(d)["tick_no"], 1)
+
+    def test_ladder_timings_are_unchanged_by_the_fast_passes_between_ticks(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            sent = []
+            for tick in range(4):
+                base = datetime(2026, 10, 28, 10, 0, tzinfo=timezone.utc) + timedelta(minutes=5 * tick)
+                for minute in range(5):
+                    got = self._main(d, fx, iso_(base + timedelta(minutes=minute)), minute != 0)
+                    sent += [(tick + 1, s) for s in got]
+            self.assertEqual(sent, [(1, 1), (3, 2)])                  # step 1 at tick 1, step 2 two ticks later, as with 5-minute passes only
+
+    def test_first_seen_in_a_fast_pass_is_aged_from_the_next_tick(self):
+        """Checker N1: step 2 must come at least 2 whole ticks after the item was noticed, and the ack window must not shrink either."""
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:00:30Z", True), [1])   # noticed in a fast pass after tick 0
+            self.assertEqual(self._state(d)["tick_no"], 0)
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:05:00Z", False), [])   # tick 1: age 0, no step 2
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:10:00Z", False), [])   # tick 2: age 1
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:15:00Z", False), [2])  # tick 3: age 2 = at least 10 minutes after it was noticed
+
+    def test_a_pr_wake_sent_in_a_fast_pass_gets_its_full_ack_window(self):
+        sent, state = [], {}
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        s = Src([item()])
+        s.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        w.run_tick(s, state, T0, lambda p: sent.append(dict(p)) or True, 0, None, True)      # fast pass after tick 0
+        pw = [v["pr_wake"] for v in state.values() if "pr_wake" in v][0]
+        self.assertEqual(pw["tick"], 1)                                                      # counted from tick 1
+        for tick in (1, 2):                                                                  # the relay answers on tick 2 at the latest: still inside the window
+            w.run_tick(s, state, T0 + timedelta(minutes=5 * tick), lambda p: sent.append(dict(p)) or True, tick, lambda pr, at: False)
+        self.assertEqual([x["step"] for x in sent], [1])                                     # not yet declared lost at tick 2 (window is 2 ticks past tick 1)
+
+    def test_a_fast_pass_with_nothing_to_do_leaves_state_untouched(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [])
+            self._main(d, fx, "2026-10-28T10:00:00Z", False)
+            with open(os.path.join(d, "state.json")) as fh:
+                before = fh.read()
+            self._main(d, fx, "2026-10-28T10:01:00Z", True)
+            with open(os.path.join(d, "state.json")) as fh:
+                self.assertEqual(fh.read(), before)
+
+
+def iso_(d):
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+
 class ReservedOwner(unittest.TestCase):
     def test_project_names_that_start_with_aamer_are_not_reserved(self):
         for owner in ("Aamer Wealth Intelligence coordinator", "  aamer os coordinator", "Aamer OS", "AAMER WEALTH INTELLIGENCE"):
@@ -743,6 +829,12 @@ class ReservedOwner(unittest.TestCase):
     def test_the_old_reserved_cases_stay_reserved(self):
         for owner in ("Aamer", "aamer", "Waiting on Aamer", "Aamer approval needed", "Aamer (decision)", "Delivery Lead for Aamer"):
             self.assertTrue(w.is_reserved({"owner": owner}), owner)
+
+    def test_prefix_must_end_at_a_word_boundary(self):
+        for owner in ("Aamer Oscar", "aamer osmond", "Aamer Wealth Intelligencex", "aamer oscar approval"):
+            self.assertTrue(w.is_reserved({"owner": owner}), owner)
+        for owner in ("Aamer OS-App", "aamer os: coordinator", "Aamer OS/ops"):
+            self.assertFalse(w.is_reserved({"owner": owner}), owner)
 
     def test_the_reserved_flag_always_wins_even_for_a_project_name(self):
         for owner in ("Aamer Wealth Intelligence coordinator", "Aamer OS", "Checker", None):

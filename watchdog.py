@@ -60,6 +60,13 @@ def label_of(entry, idx, labels):
 class GitHubSource:
     def __init__(self, token, repo=LIBRARY):
         self.token, self.repo = token, repo
+        self.rate = None                              # (remaining, limit) from the last response, for the run log
+
+    def _note_rate(self, r):
+        try:
+            self.rate = (int(r.headers.get("X-RateLimit-Remaining")), int(r.headers.get("X-RateLimit-Limit")))
+        except (TypeError, ValueError):
+            pass
 
     def get(self, path):
         req = urllib.request.Request(
@@ -68,6 +75,7 @@ class GitHubSource:
                      "X-GitHub-Api-Version": "2022-11-28"})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
+                self._note_rate(r)
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -82,6 +90,7 @@ class GitHubSource:
                      "X-GitHub-Api-Version": "2022-11-28"})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
+                self._note_rate(r)
                 return r.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -112,7 +121,13 @@ def is_reserved(it):
     if it.get("reserved"):
         return True
     owner = str(it.get("owner", "")).lower().strip()
-    return "aamer" in owner and not owner.startswith(NOT_RESERVED_OWNERS)
+    if "aamer" not in owner:
+        return False
+    for name in NOT_RESERVED_OWNERS:
+        # the project name must end there: "Aamer Oscar" is not "Aamer OS"
+        if owner.startswith(name) and not owner[len(name):len(name) + 1].isalpha():
+            return False
+    return True
 
 
 CHECKPOINT_ITEM = "checkpoint-missed:"          # + the item id: an item's own checkpoint passed with nobody moving it forward
@@ -240,13 +255,14 @@ class RegistryError(Exception):
     pass
 
 
-def run_tick(source, state, now, send, tick_no, acked=None):
+def run_tick(source, state, now, send, tick_no, acked=None, fast=False):
     registry = source.get(REGISTRY_PATH)
     if not isinstance(registry, dict) or not isinstance(registry.get("projects"), list):
         raise RegistryError("REGISTRY.json missing or malformed")   # fails the run: never a green empty feed
     entries = list(registry["projects"])
     prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
+    stamp = tick_no + 1 if fast else tick_no      # a fast pass runs between ticks: what it starts is counted from the NEXT tick, so no window is shorter than designed
     feed, seen, errors = {}, set(), 0
     commented = {}                              # project id -> the step-1 PR comment already posted this tick
     commented2 = {}                             # project id -> the step-2 comment on the Delivery Lead's page already posted this tick
@@ -317,7 +333,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             seen.add(pk)
             if feed[lab]["wake_route"] == "pr_comment":
                 feed[lab]["wake_route"] = "pr_unacked"
-        probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked or (lambda pr, at: False), feed)
+        probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked or (lambda pr, at: False), feed, stamp)
         if probe_late:
             late.append(probe_late)
             late_ladder.append(probe_late)
@@ -332,8 +348,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 continue                       # never climbs the ladder
             k = key_of(pid, item, due)
             seen.add(k)
-            s = state.setdefault(k, {"first_tick": tick_no, "steps": []})
-            age = tick_no - s["first_tick"]
+            s = state.setdefault(k, {"first_tick": stamp, "steps": []})
+            age = max(0, tick_no - s["first_tick"])
             if s.get("pr_down") == "pr_unacked" and item != "relay-probe" and pk not in state:
                 del s["pr_down"]               # the project's lost-wake mark was cleared by an ack: the item's own copy must not keep the feed at pr_unacked
             if item == "relay-probe":
@@ -394,7 +410,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     if ok:
                         s["steps"].append(2)
                         if payload.get("wake_pr"):
-                            s["dl_wake"] = {"tick": tick_no, "at": iso(now), "pr": page[0], "acked": False}
+                            s["dl_wake"] = {"tick": stamp, "at": iso(now), "pr": page[0], "acked": False}
                             commented2[pid] = s["dl_wake"]
                     break
                 ok = send(payload)
@@ -406,7 +422,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if ok:
                     s["steps"].append(step)
                     if payload.get("wake_pr"):
-                        s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
+                        s["pr_wake"] = {"tick": stamp, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
                         commented[pid] = s["pr_wake"]
                 if step != 3:
                     break                      # one step per tick; the owner send (3) is separate and never blocks steps 1 and 2
@@ -442,7 +458,7 @@ PROBE_HOUR_UTC = 6                       # once a day, on the first tick of this
 PROBE_GAP = timedelta(hours=20)
 
 
-def relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked, feed):
+def relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked, feed, stamp=None):
     """Once a day, comment a probe on a project's wake PR. A probe with no ack within PR_ACK_TICKS ticks marks the relay
     down: the feed shows pr_unacked (or pr_failed when the comment was refused), and one late item, relay-probe, goes up
     the ladder (wake runner to the coordinator, then the Delivery Lead, then the owner). It clears on the next ack.
@@ -457,7 +473,7 @@ def relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked, feed):
         p["pending"], p["down"] = False, "pr_unacked"
     elif not p.get("pending") and not p.get("down") and now.hour == PROBE_HOUR_UTC \
             and (not p.get("last") or now - parse(p["last"]) >= PROBE_GAP):
-        p.update(last=iso(now), tick=tick_no, pending=True, at=iso(now))
+        p.update(last=iso(now), tick=tick_no if stamp is None else stamp, pending=True, at=iso(now))
         if not send({"wake_pr": e["wake_pr"], "label": lab, "step": "probe"}):
             p.update(pending=False, down="pr_failed")
     if p:
@@ -564,6 +580,8 @@ def main():
     ap.add_argument("--fixtures", help="read records from a directory instead of GitHub")
     ap.add_argument("--now")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--fast", action="store_true", help="between 5-minute ticks: look for new late items and send what is due, "
+                    "but do not count a tick, move the ladder clock, or publish the feed")
     a = ap.parse_args()
     now = parse(a.now) if a.now else datetime.now(timezone.utc)
     src = DirSource(a.fixtures) if a.fixtures else GitHubSource(os.environ["READ_KEY"])
@@ -571,14 +589,24 @@ def main():
     os.makedirs(sdir, exist_ok=True)
     sp = os.path.join(a.out, "state.json")
     st = json.load(open(sp)) if os.path.exists(sp) else {"tick_no": 0, "items": {}}
-    st["tick_no"] += 1
+    before = json.dumps(st, sort_keys=True)
+    if not a.fast:
+        st["tick_no"] += 1                      # a fast pass keeps the 5-minute tick number: every ladder timing counts these ticks
     send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
     try:
-        feed = run_tick(src, st["items"], now, send, st["tick_no"], pr_acked(os.environ.get("GH_TOKEN", "")))
+        feed = run_tick(src, st["items"], now, send, st["tick_no"], None if a.fast else pr_acked(os.environ.get("GH_TOKEN", "")), a.fast)   # no ack reads between ticks: acks are judged on ticks
     except RegistryError as ex:
         print(f"FAILED: {ex}", file=sys.stderr)
         sys.exit(1)
+    if getattr(src, "rate", None):
+        print(f"read key rate limit: {src.rate[0]} of {src.rate[1]} left ({'fast' if a.fast else 'tick'} pass)", file=sys.stderr)
+    if a.fast:
+        if json.dumps(st, sort_keys=True) != before:
+            json.dump(st, open(sp, "w"), indent=1, sort_keys=True)   # a wake was sent or an ack seen: remember it for the next pass
+        if feed["errors"]:
+            print(f"fast pass: {feed['errors']} project error(s)", file=sys.stderr)
+        return
     lag = (now - now.replace(minute=now.minute - now.minute % 5, second=0, microsecond=0)).total_seconds()
     prev = parse(st.get("last_tick_at"))
     feed["tick_no"], feed["lag_seconds_past_5min_mark"] = st["tick_no"], int(lag)
