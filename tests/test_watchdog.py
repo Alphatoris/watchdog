@@ -171,6 +171,30 @@ class T(unittest.TestCase):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
         self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False)])
 
+    def test_many_late_items_post_one_step_one_comment_per_project_per_tick(self):
+        items = [item(id=f"oi-{n}") for n in range(10)]
+        src = self._pr_src()
+        src.f["projects/watchdog-test/stages/OPEN-ITEMS.json"] = {"items": items}
+        sent, state = [], {}
+        w.run_tick(src, state, T0, lambda p: sent.append(dict(p)) or True, 1)
+        self.assertEqual(len([p for p in sent if "wake_pr" in p]), 1)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(len(state) - len([k for k in state if not isinstance(state[k], dict) or "steps" not in state[k]]), 10)   # every item has its own ladder state
+        self.assertTrue(all(v["steps"] == [1] and v["pr_wake"]["acked"] is False for v in state.values() if "steps" in v))
+        w.run_tick(src, state, T0 + timedelta(minutes=5), lambda p: sent.append(dict(p)) or True, 2)
+        self.assertEqual(len(sent), 1)                      # no second comment on the next tick either
+
+    def test_many_late_items_each_still_climb_to_step_two_and_unacked_each_fall_back(self):
+        items = [item(id=f"oi-{n}") for n in range(3)]
+        src = self._pr_src()
+        src.f["projects/watchdog-test/stages/OPEN-ITEMS.json"] = {"items": items}
+        sent, state = [], {}
+        for i in range(8):
+            w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
+        self.assertEqual(len([p for p in sent if p["step"] == 2]), 3)
+        self.assertEqual(len([p for p in sent if p["step"] == 1 and "wake_pr" in p]), 1)
+        self.assertEqual(len([p for p in sent if p["step"] == 1 and "wake_pr" not in p]), 3)   # unacked: each is sent again by the runner
+
     def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
         sent = []
         def send(p):

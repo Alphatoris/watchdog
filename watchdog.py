@@ -187,6 +187,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
+    commented = {}                              # project id -> the step-1 PR comment already posted this tick
     labels = [x.get("public_label") for x in entries if isinstance(x, dict)]
     for idx, e in enumerate(entries):
         try:
@@ -275,6 +276,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
                     payload["label"] = lab
+                    if pid in commented:       # one step-1 comment per project per tick: the relay wakes the coordinator once either way
+                        s["steps"].append(1)
+                        s["pr_wake"] = dict(commented[pid])   # same comment, so each item is still acknowledged on its own
+                        break
                 ok = send(payload)
                 if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
                     s["pr_down"] = "pr_failed"
@@ -285,6 +290,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     s["steps"].append(step)
                     if payload.get("wake_pr"):
                         s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
+                        commented[pid] = s["pr_wake"]
                 if step != 3:
                     break                      # one step per tick; the owner send (3) is separate and never blocks steps 1 and 2
     for k in list(state):                      # closed or re-dated items drop out
