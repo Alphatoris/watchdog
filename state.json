@@ -254,7 +254,7 @@
   "9b97d3195dcab432": {
    "first_tick": 958,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T16:31:13Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 958
@@ -516,6 +516,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T16:31:13Z",
- "tick_no": 958
+ "last_tick_at": "2026-10-31T16:36:13Z",
+ "tick_no": 959
 }
