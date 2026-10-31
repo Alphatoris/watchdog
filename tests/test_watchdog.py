@@ -791,6 +791,108 @@ class FastPass(unittest.TestCase):
 def iso_(d):
     return d.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+class ReservedOwner(unittest.TestCase):
+    def test_project_names_that_start_with_aamer_are_not_reserved(self):
+        for owner in ("Aamer Wealth Intelligence coordinator", "  aamer os coordinator", "Aamer OS", "AAMER WEALTH INTELLIGENCE"):
+            self.assertFalse(w.is_reserved({"owner": owner}), owner)
+
+    def test_the_old_reserved_cases_stay_reserved(self):
+        for owner in ("Aamer", "aamer", "Waiting on Aamer", "Aamer approval needed", "Aamer (decision)", "Delivery Lead for Aamer"):
+            self.assertTrue(w.is_reserved({"owner": owner}), owner)
+
+    def test_prefix_must_end_at_a_word_boundary(self):
+        for owner in ("Aamer Oscar", "aamer osmond", "Aamer Wealth Intelligencex", "aamer oscar approval"):
+            self.assertTrue(w.is_reserved({"owner": owner}), owner)
+        for owner in ("Aamer OS-App", "aamer os: coordinator", "Aamer OS/ops"):
+            self.assertFalse(w.is_reserved({"owner": owner}), owner)
+
+    def test_the_reserved_flag_always_wins_even_for_a_project_name(self):
+        for owner in ("Aamer Wealth Intelligence coordinator", "Aamer OS", "Checker", None):
+            self.assertTrue(w.is_reserved({"owner": owner, "reserved": True}), owner)
+
+    def test_an_item_owned_by_a_project_with_aamer_in_its_name_climbs_the_ladder(self):
+        sent = []
+        ticks(Src([item(owner="Aamer Wealth Intelligence coordinator")]), 2, sent)
+        self.assertEqual([p["step"] for p in sent], [1])
+        sent = []
+        ticks(Src([item(owner="Aamer Wealth Intelligence coordinator", reserved=True), item(id="oi-2", owner="Aamer approval needed")]), 8, sent)
+        self.assertEqual(sent, [])
+
+    def test_a_late_item_of_an_ordinary_owner_is_not_reserved(self):
+        self.assertFalse(w.is_reserved({"owner": "Checker"}))
+        self.assertFalse(w.is_reserved({}))
+
+
+class Checkpoints(unittest.TestCase):
+    """Optional checkpoints on items and registry entries (Release 1.3 S2, audit 21d): a missed one is a Delivery Lead only late item."""
+    PAST = "2026-10-28T09:50:00Z"
+    FUTURE = "2026-10-28T12:00:00Z"
+    OK = dict(due="2026-10-29T09:00:00Z", received="x")        # not late for any other reason
+
+    def _kinds(self, items, n=8):
+        sent = []
+        ticks(Src(items), n, sent)
+        return sent
+
+    def test_item_with_a_passed_checkpoint_reports_to_the_delivery_lead_only(self):
+        sent = self._kinds([item(checkpoint=self.PAST, **self.OK)])
+        self.assertEqual({(p["item"], p["step"], p["target"]) for p in sent}, {("checkpoint-missed:oi-1", 2, "delivery_lead")})
+        self.assertEqual(len(sent), 1)
+
+    def test_a_future_or_missing_checkpoint_is_quiet(self):
+        self.assertEqual(self._kinds([item(checkpoint=self.FUTURE, **self.OK)]), [])
+        self.assertEqual(self._kinds([item(**self.OK)]), [])
+
+    def test_done_dropped_and_reserved_items_do_not_report(self):
+        self.assertEqual(self._kinds([item(checkpoint=self.PAST, done="x", **self.OK)]), [])
+        self.assertEqual(self._kinds([item(checkpoint=self.PAST, dropped="x", **self.OK)]), [])
+        self.assertEqual(self._kinds([item(checkpoint=self.PAST, owner="Aamer", **self.OK)]), [])
+
+    def test_never_reaches_the_coordinator_or_the_owner_even_if_critical(self):
+        sent = self._kinds([item(checkpoint=self.PAST, severity="critical", **self.OK)], 30)
+        self.assertEqual({p["target"] for p in sent}, {"delivery_lead"})
+
+    def test_moving_the_checkpoint_forward_closes_the_report(self):
+        state = {}
+        ticks(Src([item(checkpoint=self.PAST, **self.OK)]), 1, [], state=state)
+        self.assertEqual(len(state), 1)
+        w.run_tick(Src([item(checkpoint=self.FUTURE, **self.OK)]), state, T0 + timedelta(minutes=5), lambda p: True, 2)
+        self.assertEqual(state, {})
+
+    def test_a_checkpoint_that_is_not_a_time_is_ignored_not_an_error(self):
+        feed = w.run_tick(Src([item(checkpoint="soon", **self.OK)]), {}, T0, lambda p: True, 1)
+        self.assertEqual(feed["errors"], 0)
+        self.assertEqual(feed["projects"]["P0"]["late"], 0)
+
+    def test_registry_entry_checkpoint_passed_goes_to_the_delivery_lead_only(self):
+        for cp, want in ((self.PAST, 1), (self.FUTURE, 0), (None, 0)):
+            src = Src([])
+            src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], next_checkpoint=cp)]}
+            sent = []
+            ticks(src, 8, sent)
+            self.assertEqual(len(sent), want, cp)
+            self.assertEqual({(p["item"], p["step"]) for p in sent}, {("registry-checkpoint-missed", 2)} if want else set())
+
+    def test_a_paused_registry_entry_is_not_reported(self):
+        src = Src([])
+        src.f[w.REGISTRY_PATH] = {"projects": [dict(REG["projects"][0], next_checkpoint=self.PAST, paused=True)]}
+        sent = []
+        ticks(src, 8, sent)
+        self.assertEqual(sent, [])
+
+    def test_a_checkpoint_on_a_routed_delivery_lead_item_is_not_chased_under_the_target(self):
+        late = dict(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z", checkpoint=self.PAST)
+        reg = {"projects": [
+            {"project": "delivery-lead", "public_label": "P1", "coordinator_session_id": "session_DL"},
+            {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C"}]}
+        src = Src([])
+        src.f[w.REGISTRY_PATH] = reg
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"] = {"items": [item(id="oi-9", project="watchdog-test", **late)]}
+        sent = []
+        ticks(src, 1, sent)
+        self.assertEqual(sorted((p["item"], p["step"]) for p in sent), [("checkpoint-missed:oi-9", 2), ("dl:oi-9", 1)])
+        self.assertEqual({p["project"] for p in sent if p["item"].startswith("checkpoint")}, {"delivery-lead"})
+
 
 class RelayProbe(unittest.TestCase):
     """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
