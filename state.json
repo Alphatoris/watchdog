@@ -67,7 +67,7 @@
    "tick": 830
   },
   "249b3bc181cd13be": {
-   "since": "2026-10-31T17:30:50Z"
+   "since": "2026-10-31T20:24:46Z"
   },
   "263199ee397d04ae": {
    "dl_wake": {
@@ -354,12 +354,7 @@
   },
   "bd3598157a021fa4": {
    "first_tick": 1006,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-31T20:24:46Z",
-    "pr": "Alphatoris/watchdog#9",
-    "tick": 1006
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
@@ -479,6 +474,14 @@
    "pass": "fast",
    "route": "pr_comment",
    "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "PT",
+   "ok": true,
+   "pass": "fast",
+   "route": "runner",
+   "runner_fired": true,
    "step": 1
   }
  ],
