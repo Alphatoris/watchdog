@@ -77,6 +77,9 @@
    "pending": false,
    "tick": 830
   },
+  "5cc18f7c04c4c841": {
+   "since": "2026-10-31T08:45:57Z"
+  },
   "851c5e9c8493edd6": {
    "first_tick": 832,
    "pr_down": "pr_unacked",
@@ -104,12 +107,7 @@
   },
   "a9f9ea0972801bca": {
    "first_tick": 863,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-31T08:45:57Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 863
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
@@ -131,12 +129,7 @@
   },
   "d10d62026f479d36": {
    "first_tick": 863,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-31T08:45:57Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 863
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
@@ -159,12 +152,7 @@
   },
   "e368a71f730cd1b4": {
    "first_tick": 863,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-31T08:45:57Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 863
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
@@ -180,12 +168,7 @@
   },
   "f7c6ff7d8f7a979e": {
    "first_tick": 863,
-   "pr_wake": {
-    "acked": false,
-    "at": "2026-10-31T08:45:57Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 863
-   },
+   "pr_down": "pr_unacked",
    "steps": [
     1
    ]
@@ -198,6 +181,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T08:50:57Z",
- "tick_no": 864
+ "last_tick_at": "2026-10-31T08:55:57Z",
+ "tick_no": 865
 }
