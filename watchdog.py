@@ -240,7 +240,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
             own_dl = pid == DL_PROJECT
             dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now)] if not paused else []
-            dl_req = {"dl:" + str(i.get("id")): wake_request(i) for i in routed.get(pid, [])} if not paused else {}
+            dl_req = {"dl:" + str(i.get("id")): wake_request(i) for i in routed.get(pid, [])} if not paused else {}   # ids only
             late_ladder = [l for l in late if not (own_dl and l[0] in routed_ids)] + dl_routed   # a routed item climbs under its target, never twice
             gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
             if not paused:
@@ -331,9 +331,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
                     payload["label"] = lab
-                    reqs = [dl_req[x[0]] for x in dl_routed if dl_req.get(x[0])]   # every late routed request of this project, one comment
+                    reqs = [dl_req[x[0]] for x in dl_routed if dl_req.get(x[0])
+                            and 1 not in state.get(key_of(pid, x[0], x[1]), {}).get("steps", [])]   # each request is named once: only items whose step 1 is not yet sent
                     if reqs:
-                        payload["request"] = " ; ".join(reqs)[:560]
+                        payload["request"] = ",".join(reqs)[:200]
                     if pid in commented:       # one step-1 comment per project per tick: the relay wakes the coordinator once either way
                         s["steps"].append(1)
                         s["pr_wake"] = dict(commented[pid])   # same comment, so each item is still acknowledged on its own
@@ -445,15 +446,11 @@ REQ_ID_RE = re.compile(r"[A-Za-z0-9._-]{1,60}")
 
 
 def wake_request(item):
-    """The Delivery Lead's own request line for a routed item: "<id>: <wake_text>". Opt-in: only an item that carries a
-    "wake_text" string (written by the Delivery Lead, public-safe, no secrets) and a plain id. One line, 280 characters at most."""
-    if not isinstance(item, dict) or not isinstance(item.get("wake_text"), str) or not isinstance(item.get("id"), str):
+    """The id of a routed Delivery Lead request, for the step-1 comment. The request text stays in the Library list (the
+    wake page is public: ids only, never free text). None unless the id is a plain token."""
+    if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not REQ_ID_RE.fullmatch(item["id"]):
         return None
-    if not REQ_ID_RE.fullmatch(item["id"]):
-        return None
-    text = re.sub(r"[\x00-\x1f\x7f]+", " ", item["wake_text"])
-    text = " ".join(text.split())[:280]
-    return f"{item['id']}: {text}" if text else None
+    return item["id"]
 
 
 def comment_wake(wake_pr, label, step, token, for_label=None, request=None):
@@ -462,8 +459,8 @@ def comment_wake(wake_pr, label, step, token, for_label=None, request=None):
     repo, num = wake_pr.rsplit("#", 1)
     tail = f" (for {for_label})" if isinstance(for_label, str) and LABEL_RE.fullmatch(for_label) else ""
     req_txt = ""
-    if isinstance(request, str) and request and step == 1:
-        req_txt = " | Delivery Lead request " + request     # a request from the Delivery Lead, in its own words; the page is public
+    if isinstance(request, str) and step == 1 and all(REQ_ID_RE.fullmatch(x) for x in request.split(",")):
+        req_txt = " | Delivery Lead request " + request     # request ids only; the text stays in the Library list
     body = json.dumps({"body": f"Watchdog wake: {label} step {step}{tail}{req_txt}"}).encode()
     req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
                                  method="POST", headers={"Authorization": f"Bearer {token}",

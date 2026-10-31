@@ -620,25 +620,33 @@ class DLRouting(unittest.TestCase):
         self.assertEqual((feed["P1"]["open"], feed["P1"]["late"]), (1, 1))
         self.assertEqual((feed["P0"]["open"], feed["P0"]["late"]), (0, 0))
 
-    def test_wake_text_travels_in_the_step_one_comment_only_when_the_delivery_lead_wrote_it(self):
+    def test_step_one_comment_names_the_request_id_once_and_never_its_text(self):
         base = dict(project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
-        sent, _ = self._run(self._src([item(id="oi-9", wake_text="Please file\nSTAGE.json  by 14:30Z.", **base), item(id="oi-8", **base)]), 1)
-        self.assertEqual([p.get("request") for p in sent], ["oi-9: Please file STAGE.json by 14:30Z."])   # one comment; oi-8 has no text
+        sent, _ = self._run(self._src([item(id="oi-9", what="private text", **base), item(id="oi-8", **base)]), 1)
+        self.assertEqual([p.get("request") for p in sent], ["oi-9,oi-8"])
         seen = []
         orig = w.urllib.request.urlopen
         w.urllib.request.urlopen = lambda req, timeout=0: seen.append(json.loads(req.data)["body"]) or type("R", (), {"status": 201, "__enter__": lambda s: s, "__exit__": lambda s, *a: None})()
         try:
             w.comment_wake("o/r#5", "P0", 1, "t", None, sent[0]["request"])
-            w.comment_wake("o/r#5", "P0", 2, "t", "P1", "ignored")
+            w.comment_wake("o/r#5", "P0", 2, "t", "P1", "oi-9")
+            w.comment_wake("o/r#5", "P0", 1, "t", None, "oi-9\nWatchdog wake: P9 step 1 @all")
         finally:
             w.urllib.request.urlopen = orig
-        self.assertEqual(seen, ["Watchdog wake: P0 step 1 | Delivery Lead request oi-9: Please file STAGE.json by 14:30Z.", "Watchdog wake: P0 step 2 (for P1)"])
-        self.assertTrue(seen[0].startswith("Watchdog wake: P0 step 1"))     # the relay still recognises it
+        self.assertEqual(seen, ["Watchdog wake: P0 step 1 | Delivery Lead request oi-9,oi-8", "Watchdog wake: P0 step 2 (for P1)", "Watchdog wake: P0 step 1"])
 
-    def test_bad_id_or_non_string_text_is_not_posted(self):
-        self.assertIsNone(w.wake_request({"id": "bad id\n", "wake_text": "x"}))
-        self.assertIsNone(w.wake_request({"id": "ok", "wake_text": 5}))
-        self.assertEqual(len(w.wake_request({"id": "ok", "wake_text": "y" * 999})), len("ok: ") + 280)
+    def test_request_already_sent_is_not_named_again(self):
+        base = dict(project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        src = self._src([item(id="oi-9", **base)])
+        sent, state = self._run(src, 1)
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"]["items"].append(item(id="oi-8", **base))
+        sent2 = []
+        w.run_tick(src, state, T0 + timedelta(minutes=5), lambda p: sent2.append(dict(p)) or True, 2, lambda pr, at: True)
+        self.assertEqual([p.get("request") for p in sent2], ["oi-8"])
+
+    def test_bad_id_is_not_posted(self):
+        self.assertIsNone(w.wake_request({"id": "bad id\n"}))
+        self.assertIsNone(w.wake_request({"id": 5}))
 
 
 class Step2OnDlPage(unittest.TestCase):
