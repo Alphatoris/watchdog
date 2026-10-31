@@ -255,11 +255,27 @@ class RegistryError(Exception):
     pass
 
 
-def run_tick(source, state, now, send, tick_no, acked=None, fast=False):
+def run_tick(source, state, now, send, tick_no, acked=None, fast=False, sent_log=None):
     registry = source.get(REGISTRY_PATH)
     if not isinstance(registry, dict) or not isinstance(registry.get("projects"), list):
         raise RegistryError("REGISTRY.json missing or malformed")   # fails the run: never a green empty feed
     entries = list(registry["projects"])
+    if sent_log is not None:                    # counts-only record of every send, so a runner resend shows up in public data
+        labmap, raw_send = {}, send
+
+        def send(payload):
+            ok = raw_send(payload)
+            if payload.get("step") == 3:
+                return ok                       # the owner alert is never in public data: even an unlabelled entry would show that a critical item exists
+            lab_ = payload.get("for_label") or payload.get("label") or labmap.get(payload.get("project"))
+            step_ = payload.get("step")
+            sent_log.append({"label": lab_ if isinstance(lab_, str) and LABEL_RE.fullmatch(lab_) else None,
+                             "step": step_ if isinstance(step_, (int, str)) else None,
+                             "route": ("dl_page" if payload.get("for_label") else "pr_comment") if payload.get("wake_pr") else "runner",
+                             "runner_fired": not payload.get("wake_pr"), "ok": bool(ok)})
+            return ok
+    else:
+        labmap = {}
     prs = [x.get("wake_pr") for x in entries if isinstance(x, dict) and x.get("wake_pr")]
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     stamp = tick_no + 1 if fast else tick_no      # a fast pass runs between ticks: what it starts is counted from the NEXT tick, so no window is shorter than designed
@@ -280,6 +296,7 @@ def run_tick(source, state, now, send, tick_no, acked=None, fast=False):
             lab, bad_label = f"E{idx}", True
         try:
             pid = e["project"]
+            labmap[pid] = lab
             stage = source.get(f"projects/{pid}/stages/STAGE.json")
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
@@ -594,19 +611,23 @@ def main():
         st["tick_no"] += 1                      # a fast pass keeps the 5-minute tick number: every ladder timing counts these ticks
     send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
+    sent = []
     try:
-        feed = run_tick(src, st["items"], now, send, st["tick_no"], None if a.fast else pr_acked(os.environ.get("GH_TOKEN", "")), a.fast)   # no ack reads between ticks: acks are judged on ticks
+        feed = run_tick(src, st["items"], now, send, st["tick_no"], None if a.fast else pr_acked(os.environ.get("GH_TOKEN", "")), a.fast, sent_log=sent)   # no ack reads between ticks: acks are judged on ticks
     except RegistryError as ex:
         print(f"FAILED: {ex}", file=sys.stderr)
         sys.exit(1)
     if getattr(src, "rate", None):
         print(f"read key rate limit: {src.rate[0]} of {src.rate[1]} left ({'fast' if a.fast else 'tick'} pass)", file=sys.stderr)
     if a.fast:
+        if sent:
+            st["sent_pending"] = (st.get("sent_pending") or []) + [dict(x, **{"pass": "fast"}) for x in sent]   # logged on the next tick line
         if json.dumps(st, sort_keys=True) != before:
             json.dump(st, open(sp, "w"), indent=1, sort_keys=True)   # a wake was sent or an ack seen: remember it for the next pass
         if feed["errors"]:
             print(f"fast pass: {feed['errors']} project error(s)", file=sys.stderr)
         return
+    sent = st.pop("sent_pending", []) + sent   # sends of the passes since the last tick
     lag = (now - now.replace(minute=now.minute - now.minute % 5, second=0, microsecond=0)).total_seconds()
     prev = parse(st.get("last_tick_at"))
     feed["tick_no"], feed["lag_seconds_past_5min_mark"] = st["tick_no"], int(lag)
@@ -616,7 +637,7 @@ def main():
     json.dump(st, open(sp, "w"), indent=1, sort_keys=True)
     with open(os.path.join(a.out, "ticks.jsonl"), "a") as f:
         f.write(json.dumps({"tick_at": feed["tick_at"], "lag": int(lag),
-                            "gap": feed["gap_seconds_since_last_tick"]}) + "\n")
+                            "gap": feed["gap_seconds_since_last_tick"], "tick_no": st["tick_no"], "sent": sent}) + "\n")
     if feed["errors"]:
         sys.exit(1)
 
