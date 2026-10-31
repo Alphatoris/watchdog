@@ -38,6 +38,18 @@
     1
    ]
   },
+  "08f15d6a9b8c400e": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-10-31T18:55:50Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 988
+   },
+   "first_tick": 988,
+   "steps": [
+    2
+   ]
+  },
   "1191a16137705683": {
    "at": "2026-10-31T06:00:57Z",
    "down": null,
@@ -315,6 +327,14 @@
    "route": "pr_comment",
    "runner_fired": false,
    "step": 1
+  },
+  {
+   "label": "PT",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
   }
  ],
  "tick_no": 987
