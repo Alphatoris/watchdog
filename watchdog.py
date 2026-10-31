@@ -270,6 +270,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             late = [] if paused else late_items(pid, stage, items, now)
             own_dl = pid == DL_PROJECT
             dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now, checkpoints=False)] if not paused else []
+            dl_req = {"dl:" + str(i.get("id")): wake_request(i) for i in routed.get(pid, [])} if not paused else {}   # ids only
             late_ladder = [l for l in late if not (own_dl and l[0] in routed_ids)] + dl_routed   # a routed item climbs under its target, never twice
             if not paused and e.get("next_checkpoint"):          # a registry entry's own checkpoint: the entry owner moves it forward
                 try:
@@ -369,6 +370,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if e.get("wake_pr") and subscriber_ok(e, now) and step == 1 and not s.get("pr_down") and e.get("wake_pr") not in dup:   # the PR wakes the coordinator only; steps 2 and 3 use the wake runner
                     payload["wake_pr"] = e["wake_pr"]   # "owner/repo#n": a subscribed session is woken by a comment
                     payload["label"] = lab
+                    reqs = [dl_req[x[0]] for x in dl_routed if dl_req.get(x[0])
+                            and 1 not in state.get(key_of(pid, x[0], x[1]), {}).get("steps", [])]   # each request is named once: only items whose step 1 is not yet sent
+                    if reqs:
+                        payload["request"] = ",".join(reqs[:8])      # whole ids only, never cut inside one
                     if pid in commented:       # one step-1 comment per project per tick: the relay wakes the coordinator once either way
                         s["steps"].append(1)
                         s["pr_wake"] = dict(commented[pid])   # same comment, so each item is still acknowledged on its own
@@ -396,7 +401,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                 if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
                     s["pr_down"] = "pr_failed"
                     feed[lab]["wake_route"] = "pr_failed"
-                    payload.pop("wake_pr"); payload.pop("label", None)
+                    payload.pop("wake_pr"); payload.pop("label", None); payload.pop("request", None)
                     ok = send(payload)                               # same step, by the existing route, in this tick
                 if ok:
                     s["steps"].append(step)
@@ -476,12 +481,27 @@ def subscriber_ok(e, now):
     return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and now >= t)   # a future time is rejected
 
 
-def comment_wake(wake_pr, label, step, token, for_label=None):
+REQ_ID_RE = re.compile(r"dl-[0-9]{1,6}")
+
+
+def wake_request(item):
+    """The neutral public id of a routed Delivery Lead request: the entry's "wake_id", which must look like dl-<digits>. The
+    descriptive id and the text stay in the Library list (the wake page is public and the label is tied to a project there).
+    None for any other value: such an entry is woken without naming a request."""
+    if not isinstance(item, dict) or not isinstance(item.get("wake_id"), str) or not REQ_ID_RE.fullmatch(item["wake_id"]):
+        return None
+    return item["wake_id"]
+
+
+def comment_wake(wake_pr, label, step, token, for_label=None, request=None):
     """Comment on a wake pull request; a subscribed session wakes in seconds. Public text: opaque labels and the step only.
     A step-2 comment on the Delivery Lead's page adds the label of the project that is late: "step 2 (for P4)"."""
     repo, num = wake_pr.rsplit("#", 1)
     tail = f" (for {for_label})" if isinstance(for_label, str) and LABEL_RE.fullmatch(for_label) else ""
-    body = json.dumps({"body": f"Watchdog wake: {label} step {step}{tail}"}).encode()
+    req_txt = ""
+    if isinstance(request, str) and step == 1 and all(REQ_ID_RE.fullmatch(x) for x in request.split(",")):
+        req_txt = " | Delivery Lead request " + request     # request ids only; the text stays in the Library list
+    body = json.dumps({"body": f"Watchdog wake: {label} step {step}{tail}{req_txt}"}).encode()
     req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
                                  method="POST", headers={"Authorization": f"Bearer {token}",
                                                          "Accept": "application/vnd.github+json",
@@ -521,7 +541,7 @@ def pr_acked(token):
 def fire_wake(url, key):
     def send(payload):
         if payload.get("wake_pr"):
-            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""), payload.get("for_label"))
+            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""), payload.get("for_label"), payload.get("request"))
         if not url:
             print("WAKE_URL not set; not sending", file=sys.stderr)
             return False

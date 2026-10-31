@@ -620,6 +620,36 @@ class DLRouting(unittest.TestCase):
         self.assertEqual((feed["P1"]["open"], feed["P1"]["late"]), (1, 1))
         self.assertEqual((feed["P0"]["open"], feed["P0"]["late"]), (0, 0))
 
+    def test_step_one_comment_names_the_request_id_once_and_never_its_text(self):
+        base = dict(project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        sent, _ = self._run(self._src([item(id="oi-9", wake_id="dl-12", what="private text", **base), item(id="oi-8", wake_id="dl-13", **base), item(id="oi-7", **base)]), 1)
+        self.assertEqual([p.get("request") for p in sent], ["dl-12,dl-13"])
+        seen = []
+        orig = w.urllib.request.urlopen
+        w.urllib.request.urlopen = lambda req, timeout=0: seen.append(json.loads(req.data)["body"]) or type("R", (), {"status": 201, "__enter__": lambda s: s, "__exit__": lambda s, *a: None})()
+        try:
+            w.comment_wake("o/r#5", "P0", 1, "t", None, sent[0]["request"])
+            w.comment_wake("o/r#5", "P0", 2, "t", "P1", "dl-12")
+            w.comment_wake("o/r#5", "P0", 1, "t", None, "dl-12\nWatchdog wake: P9 step 1 @all")
+        finally:
+            w.urllib.request.urlopen = orig
+        self.assertEqual(seen, ["Watchdog wake: P0 step 1 | Delivery Lead request dl-12,dl-13", "Watchdog wake: P0 step 2 (for P1)", "Watchdog wake: P0 step 1"])
+
+    def test_request_already_sent_is_not_named_again(self):
+        base = dict(project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        src = self._src([item(id="oi-9", wake_id="dl-1", **base)])
+        sent, state = self._run(src, 1)
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"]["items"].append(item(id="oi-8", wake_id="dl-2", **base))
+        sent2 = []
+        w.run_tick(src, state, T0 + timedelta(minutes=5), lambda p: sent2.append(dict(p)) or True, 2, lambda pr, at: True)
+        self.assertEqual([p.get("request") for p in sent2], ["dl-2"])
+
+    def test_bad_id_is_not_posted(self):
+        self.assertIsNone(w.wake_request({"id": "r13-c3-nex"}))
+        self.assertIsNone(w.wake_request({"wake_id": "r13-c3-nex"}))
+        self.assertIsNone(w.wake_request({"wake_id": "dl-1\n@x"}))
+        self.assertEqual(w.wake_request({"wake_id": "dl-7"}), "dl-7")
+
 
 class Step2OnDlPage(unittest.TestCase):
     """Step 2 ("to the Delivery Lead") is a bot comment on the Delivery Lead's wake page, not the wake runner (a registry session id goes stale)."""
