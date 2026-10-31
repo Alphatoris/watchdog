@@ -49,7 +49,7 @@
   "08efda641918dda6": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 995
@@ -61,7 +61,7 @@
   "0c716aa7ad0e2e0e": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 995
@@ -83,7 +83,7 @@
   "263199ee397d04ae": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 995
@@ -238,7 +238,7 @@
   "678a627a0dfa97e2": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 995
@@ -250,7 +250,7 @@
   "6841d0ca7a197766": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 995
@@ -281,7 +281,7 @@
   "75c2354b0ff89774": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 995
@@ -293,7 +293,7 @@
   "854048439977b39c": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 995
@@ -305,7 +305,7 @@
   "8af4121ace14fe03": {
    "first_tick": 995,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T19:30:50Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 995
@@ -437,32 +437,6 @@
    ]
   }
  },
- "last_tick_at": "2026-10-31T19:27:50Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "runner",
-   "runner_fired": true,
-   "step": 2
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 994
+ "last_tick_at": "2026-10-31T19:32:50Z",
+ "tick_no": 995
 }
