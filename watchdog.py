@@ -4,8 +4,10 @@ wakes through the wake runner, writes a status feed. Standard library only.
 
 Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
-coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 the owner list and
-phone push after 2 more. Each step once. Reserved items never climb the ladder.
+coordinator; step 2 the Delivery Lead after 2 more ticks. Step 3, the owner list and
+phone push, is by severity and not by time (playbooks rev-055, cycle rules section 21 item 3):
+only an item marked `"severity": "critical"` reaches the owner, at once. Each step once.
+Reserved items never climb the ladder.
 The public repo holds no project data: state keys are keyed hashes (HMAC), and the
 feed holds, per project, only a stage number, a state word, counts of open and late
 items and a wake-route word, under opaque labels. The only times in the published
@@ -18,7 +20,7 @@ LIBRARY = "Alphatoris/Alphatoris-Library"
 REGISTRY_PATH = "projects/alphatoris-wide/stages/REGISTRY.json"
 DL_ITEMS_PATH = "projects/alphatoris-wide/stages/OPEN-ITEMS.json"
 RECEIVE_GRACE = timedelta(minutes=30)
-STEP2_TICKS, STEP3_TICKS = 2, 4          # ticks after first detection
+STEP2_TICKS = 2                          # ticks after first detection
 CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waiting on aamer"}
 
 
@@ -146,6 +148,21 @@ def milestone_late(stage, status):
     return []
 
 
+def gate_word(status, gate_late, stage=None):
+    """Public feed word for the evidence gate: unknown (no status file), unreadable, ahead, or ok. Words only, no milestone.
+    ok is only said when both sides are readable: a status file with a valid accepted_milestone and a stage that is an int."""
+    if status is None:
+        return "unknown"
+    got = status.get("accepted_milestone") if isinstance(status, dict) else None
+    shown = stage.get("stage") if isinstance(stage, dict) else None
+    if not isinstance(status, dict) or "accepted_milestone" not in status \
+            or (got is not None and not (isinstance(got, str) and MILESTONE_RE.fullmatch(got))) \
+            or isinstance(shown, bool) or not isinstance(shown, int):
+        return "unreadable"
+    kinds = {l[0] for l in gate_late}
+    return "unreadable" if "gate-status-unreadable" in kinds else "ahead" if "stage-ahead-of-evidence" in kinds else "ok"
+
+
 STATE_WORDS = (("waiting_on_aamer", ("waiting on aamer", "waiting_on_aamer")), ("blocked", ("block",)),
                ("done", ("done", "closed", "complete")), ("in_progress", ("progress", "active", "working", "open")))
 
@@ -182,9 +199,13 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
+            gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
             if not paused:
                 try:
-                    late += milestone_late(stage, source.get(f"ledger/status/{pid}.json"))
+                    status = source.get(f"ledger/status/{pid}.json")
+                    gate_late = milestone_late(stage, status)
+                    late += gate_late
+                    gate = gate_word(status, gate_late, stage)
                 except Exception as ex:          # a failed status read must not drop the project's other late items
                     print(f"gate status read error: {type(ex).__name__}: {ex}", file=sys.stderr)
         except Exception as ex:                  # one bad project never stops the others
@@ -192,11 +213,13 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             feed[lab] = {"error": "project_error"}
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
+        critical = {i.get("id") for i in (items or {}).get("items", []) if i.get("severity") == "critical"}
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
         stage_no = (stage or {}).get("stage")      # public feed (Aamer, 28 Oct 16:05 UTC): counts only, no names or free text
         feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
+                             "gate": gate,
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         pk = key_of(pid, "route", "")            # per-project mark: a lost wake keeps the feed off "healthy" until an ack arrives after it
         mark = state.get(pk)
@@ -240,7 +263,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     del s["pr_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
-            for step, need in (((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS))):
+            steps = ((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS))
+            if item in critical and item not in DL_ONLY:
+                steps = ((3, 0),) + steps     # critical security, data or major failure: the owner at once; time alone never reaches him
+            for step, need in steps:
                 if step in s["steps"] or age < need:
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]
@@ -259,7 +285,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     s["steps"].append(step)
                     if payload.get("wake_pr"):
                         s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
-                break                          # one step per tick
+                if step != 3:
+                    break                      # one step per tick; the owner send (3) is separate and never blocks steps 1 and 2
     for k in list(state):                      # closed or re-dated items drop out
         if k not in seen:
             del state[k]

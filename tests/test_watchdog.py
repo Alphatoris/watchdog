@@ -46,7 +46,7 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([item()]), 8, sent)
         self.assertEqual([(p["step"], p["target"]) for p in sent],
-                         [(1, "coordinator"), (2, "delivery_lead"), (3, "owner")])
+                         [(1, "coordinator"), (2, "delivery_lead")])
 
     def test_t2_step_times_are_two_ticks_apart(self):
         sent, state = [], {}
@@ -56,7 +56,30 @@ class T(unittest.TestCase):
             w.run_tick(Src([item()]), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1)
             if len(sent) > before:
                 order.append(i + 1)
-        self.assertEqual(order, [1, 3, 5])
+        self.assertEqual(order, [1, 3])
+
+    def test_time_alone_never_reaches_the_owner(self):
+        sent = []
+        ticks(Src([item()]), 60, sent)
+        self.assertNotIn("owner", [p["target"] for p in sent])
+
+    def test_critical_item_goes_to_the_owner_at_once_and_first(self):
+        sent = []
+        ticks(Src([item(severity="critical")]), 8, sent)
+        self.assertEqual([(p["step"], p["target"]) for p in sent],
+                         [(3, "owner"), (1, "coordinator"), (2, "delivery_lead")])
+        self.assertEqual(len([p for p in sent if p["target"] == "owner"]), 1)
+
+    def test_critical_reserved_item_still_never_climbs(self):
+        sent = []
+        ticks(Src([item(severity="critical", reserved=True)]), 8, sent)
+        self.assertEqual(sent, [])
+
+    def test_dl_only_item_never_reaches_the_owner_even_if_critical(self):
+        src = Src([item(id=next(iter(w.DL_ONLY)), severity="critical")])
+        sent = []
+        ticks(src, 8, sent)
+        self.assertNotIn("owner", [p["target"] for p in sent])
 
     def test_reserved_never_climbs(self):
         sent = []
@@ -146,7 +169,7 @@ class T(unittest.TestCase):
         sent, state = [], {}
         for i in range(8):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
-        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False)])
 
     def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
         sent = []
@@ -243,7 +266,7 @@ class T(unittest.TestCase):
         sent, state = [], {}
         for i in range(5):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
-        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False)])
 
     def test_feed_is_counts_only_no_names_or_free_text(self):
         stage = {"stage": 2, "stage_name": "Requirements SECRETNAME", "state": "blocked", "updated": "2026-10-28T06:30:00Z",
@@ -256,9 +279,9 @@ class T(unittest.TestCase):
         for secret in ("SECRETNAME", "SECRETNOTE", "SECRETWHAT", "SECRETOWNER", "Requirements", "watchdog-test"):
             self.assertNotIn(secret, text)
         words = {"other", "blocked", "done", "in_progress", "waiting_on_aamer", "paused", "pr_comment", "pr_unacked", "pr_failed",
-                 "hourly_guard_only", "project_error"}
+                 "hourly_guard_only", "project_error", "unknown", "ok", "ahead", "unreadable"}
         for lab, v in r["projects"].items():
-            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "wake_route", "error"})
+            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "gate", "wake_route", "error"})
             for k, x in v.items():
                 self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
         self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
@@ -339,6 +362,42 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([], {**s, "stage": 1}, {"accepted_milestone": None}), 1, sent)
         self.assertEqual([p["item"] for p in sent], ["stage-ahead-of-evidence"])
+
+    def test_feed_shows_gate_unknown_when_status_is_missing(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        for status, want in ((None, "unknown"), ({"accepted_milestone": "M2"}, "ok"), ({"accepted_milestone": "M0"}, "ahead"),
+                             ({"accepted_milestone": "stage 3"}, "unreadable")):
+            feed = w.run_tick(Src([], s, status), {}, T0, lambda p: True, 1)
+            self.assertEqual(feed["projects"]["P0"]["gate"], want, status)
+        self.assertNotIn("M2", json.dumps(feed))                      # words only: the milestone itself is never published
+
+    def test_feed_gate_is_never_ok_when_either_side_is_unreadable(self):
+        good = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        cases = ((None, "garbage"), (None, {}), ({"stage": "three"}, {"x": 1}), ({"stage": "three"}, {"accepted_milestone": "M2"}),
+                 ({"stage": True}, {"accepted_milestone": "M2"}), (good, "garbage"), (good, {}), (good, {"accepted_milestone": 7}),
+                 (None, {"accepted_milestone": "M2"}))
+        for stage, status in cases:
+            feed = w.run_tick(Src([], stage, status), {}, T0, lambda p: True, 1)
+            self.assertEqual(feed["projects"]["P0"]["gate"], "unreadable", (stage, status))
+
+    def test_failed_owner_send_does_not_block_steps_one_and_two(self):
+        sent, state = [], {}
+        def send(p):
+            sent.append((p["step"], p["target"]))
+            return p["step"] != 3                       # the owner send keeps failing
+        for i in range(8):
+            w.run_tick(Src([item(severity="critical")]), state, T0 + timedelta(minutes=5 * i), send, i + 1)
+        self.assertEqual([x for x in sent if x[0] != 3], [(1, "coordinator"), (2, "delivery_lead")])
+        self.assertGreater(len([x for x in sent if x[0] == 3]), 1)     # retried each tick until it goes through
+
+    def test_feed_gate_is_unknown_for_a_paused_project(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        src = Src([], s, {"accepted_milestone": "M2"})
+        reg = json.loads(json.dumps(REG))                    # REG is shared by every test: never mutate it
+        reg["projects"][0]["paused"] = True
+        src.f[w.REGISTRY_PATH] = reg
+        feed = w.run_tick(src, {}, T0, lambda p: True, 1)
+        self.assertEqual(feed["projects"]["P0"]["gate"], "unknown")
 
     def test_cleared_log_no_longer_counts(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
@@ -423,7 +482,7 @@ class T(unittest.TestCase):
             self.assertEqual(set(feed), {"tick_at", "tick_no", "lag_seconds_past_5min_mark",
                                          "gap_seconds_since_last_tick", "projects", "errors"})
             for entry in feed["projects"].values():
-                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "wake_route", "error"})
+                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "gate", "wake_route", "error"})
             for banned in ("stage_name", "stage_updated", "reserved_waiting"):
                 self.assertNotIn(banned, json.dumps(feed))
 
@@ -464,7 +523,7 @@ class RelayProbe(unittest.TestCase):
             r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=False)
             routes.append(r["projects"]["P0"]["wake_route"])
         ladder = [(p["step"], p["target"], "wake_pr" in p) for p in sent if p.get("step") != "probe"]
-        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False), (3, "owner", False)])
+        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False)])
         self.assertEqual(routes[-1], "pr_unacked")
 
     def test_unacked_probe_clears_when_the_relay_acks(self):
