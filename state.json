@@ -270,19 +270,6 @@
    "pending": false,
    "tick": 830
   },
-  "d86b78f4b638a2f7": {
-   "first_tick": 915,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-10-31T13:02:02Z",
-    "pr": "Alphatoris/watchdog#18",
-    "tick": 915
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
   "d8a99b4b4e28cff6": {
    "first_tick": 915,
    "pr_wake": {
