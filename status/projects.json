@@ -69,13 +69,13 @@
   },
   "PT": {
    "gate": "unknown",
-   "late": 0,
+   "late": 1,
    "open": 1,
    "stage": null,
    "state": "other",
    "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-31T14:49:58Z",
- "tick_no": 937
+ "tick_at": "2026-10-31T14:54:58Z",
+ "tick_no": 938
 }
