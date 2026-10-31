@@ -534,13 +534,12 @@ class DLRouting(unittest.TestCase):
 
     def _src(self, dl_items, target_items=None, target_paused=False):
         reg = {"delivery_lead_session_id": "session_DL", "projects": [
-            {"project": "alphatoris-wide", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1", "wake_subscriber": self.SUB},
+            {"project": "delivery-lead", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1", "wake_subscriber": self.SUB},
             {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C", "wake_pr": "o/r#5", "wake_subscriber": self.SUB,
              **({"paused": True} if target_paused else {})}]}
         src = Src(target_items or [])
         src.f[w.REGISTRY_PATH] = reg
-        src.f[w.DL_ITEMS_PATH] = {"items": dl_items}
-        src.f["projects/alphatoris-wide/stages/OPEN-ITEMS.json"] = {"items": dl_items}
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"] = {"items": dl_items}      # the real path, written out: not the constant
         return src
 
     def _run(self, src, n=8, state=None):
@@ -597,6 +596,23 @@ class DLRouting(unittest.TestCase):
         sent, state = self._run(src, 1)
         self.assertEqual(len(sent), 1)                                               # one step-1 comment for the page (PR 37)
         self.assertEqual(len([k for k, v in state.items() if "steps" in v]), 2)
+
+    def test_the_real_registry_id_and_list_path_are_used(self):
+        self.assertEqual((w.DL_PROJECT, w.DL_ITEMS_PATH), ("delivery-lead", "projects/delivery-lead/stages/OPEN-ITEMS.json"))
+
+    def test_nothing_is_routed_when_the_delivery_lead_is_not_in_the_registry(self):
+        src = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        src.f[w.REGISTRY_PATH]["projects"] = [e for e in src.f[w.REGISTRY_PATH]["projects"] if e["project"] != "delivery-lead"]
+        sent, _ = self._run(src, 1)
+        self.assertEqual(sent, [])
+
+    def test_entry_without_a_string_id_is_skipped_and_the_target_is_not_marked_in_error(self):
+        late = dict(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        for bad in ({}, {"id": None}, {"id": 7}, {"id": ""}):
+            src = self._src([{**item(**late), **bad, "project": "watchdog-test"}] if "id" in bad else
+                            [{k: v for k, v in item(**late).items() if k != "id"} | {"project": "watchdog-test"}])
+            r = w.run_tick(src, {}, T0, lambda p: True, 1, lambda pr, at: True)
+            self.assertNotIn("error", r["projects"]["P0"], bad)   # the target is untouched (a malformed id in the Delivery Lead's own list is its own project's loud error, as before)
 
     def test_routed_item_is_counted_for_the_delivery_lead_not_the_target(self):
         src = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])

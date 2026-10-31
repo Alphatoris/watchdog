@@ -20,7 +20,8 @@ from datetime import datetime, timedelta, timezone
 
 LIBRARY = "Alphatoris/Alphatoris-Library"
 REGISTRY_PATH = "projects/alphatoris-wide/stages/REGISTRY.json"
-DL_ITEMS_PATH = "projects/alphatoris-wide/stages/OPEN-ITEMS.json"
+DL_PROJECT = "delivery-lead"              # the Delivery Lead's registry id; its list is projects/<id>/stages/OPEN-ITEMS.json
+DL_ITEMS_PATH = f"projects/{DL_PROJECT}/stages/OPEN-ITEMS.json"
 RECEIVE_GRACE = timedelta(minutes=30)
 STEP2_TICKS = 2                          # ticks after first detection
 CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waiting on aamer"}
@@ -131,15 +132,20 @@ def route_dl_items(dl_items, entries, now):
     unknown or paused project (stderr note) are not routed and stay ordinary Delivery Lead items."""
     live = {e["project"]: e for e in entries if isinstance(e, dict) and e.get("project")}
     routed = {}
+    if DL_PROJECT not in live:
+        return routed                             # the Delivery Lead is not in the registry: nothing to route from
     for it in (dl_items or {}).get("items", []):
         tgt = it.get("project") if isinstance(it, dict) else None
         if not tgt or it.get("done") or it.get("dropped"):
+            continue
+        if not isinstance(it.get("id"), str) or not it["id"]:
+            print("delivery lead item naming a project has no string id: not routed", file=sys.stderr)
             continue
         e = live.get(tgt)
         if e is None or e.get("paused"):
             print(f"delivery lead item names an unknown or paused project: not routed", file=sys.stderr)
             continue
-        if f"projects/{tgt}/stages/OPEN-ITEMS.json" == DL_ITEMS_PATH:
+        if tgt == DL_PROJECT:
             continue                              # the Delivery Lead's own project: an ordinary item
         if it.get("reserved") or "aamer" in str(it.get("owner", "")).lower():
             continue                              # reserved never climbs
@@ -231,7 +237,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
-            own_dl = f"projects/{pid}/stages/OPEN-ITEMS.json" == DL_ITEMS_PATH
+            own_dl = pid == DL_PROJECT
             dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now)] if not paused else []
             late_ladder = [l for l in late if not (own_dl and l[0] in routed_ids)] + dl_routed   # a routed item climbs under its target, never twice
             gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
