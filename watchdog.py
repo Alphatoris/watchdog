@@ -103,6 +103,18 @@ class DirSource:
 
 
 # ---- decisions -----------------------------------------------------------
+NOT_RESERVED_OWNERS = ("aamer wealth intelligence", "aamer os")   # project names that start with the owner's first name
+
+
+def is_reserved(it):
+    """An item is reserved (Aamer's own decision: never chased) if it says reserved, or its owner names Aamer. Fail closed: any owner containing
+    "aamer" is reserved, except an owner that starts with the name of a project (Aamer Wealth Intelligence, Aamer OS) unless reserved is set."""
+    if it.get("reserved"):
+        return True
+    owner = str(it.get("owner", "")).lower().strip()
+    return "aamer" in owner and not owner.startswith(NOT_RESERVED_OWNERS)
+
+
 def late_items(project, stage, items, now):
     """Return list of (item_id, due_iso, reserved) that are late."""
     out = []
@@ -115,7 +127,7 @@ def late_items(project, stage, items, now):
         unreceived = (not it.get("received")) and given is not None and given + RECEIVE_GRACE < now
         if past_due or unreceived:
             when = it.get("due") or iso(given + RECEIVE_GRACE)
-            reserved = bool(it.get("reserved")) or "aamer" in str(it.get("owner", "")).lower()
+            reserved = is_reserved(it)
             out.append((it["id"], when, reserved))
     if stage:
         cp = parse(stage.get("next_checkpoint"))
@@ -147,7 +159,7 @@ def route_dl_items(dl_items, entries, now):
             continue
         if tgt == DL_PROJECT:
             continue                              # the Delivery Lead's own project: an ordinary item
-        if it.get("reserved") or "aamer" in str(it.get("owner", "")).lower():
+        if is_reserved(it):
             continue                              # reserved never climbs
         routed.setdefault(tgt, []).append(it)
     return routed

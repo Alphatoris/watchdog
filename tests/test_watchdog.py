@@ -705,6 +705,32 @@ class Step2OnDlPage(unittest.TestCase):
         self.assertEqual(seen, ["Watchdog wake: P1 step 2 (for P0)", "Watchdog wake: P0 step 1", "Watchdog wake: P1 step 2"])
 
 
+class ReservedOwner(unittest.TestCase):
+    def test_project_names_that_start_with_aamer_are_not_reserved(self):
+        for owner in ("Aamer Wealth Intelligence coordinator", "  aamer os coordinator", "Aamer OS", "AAMER WEALTH INTELLIGENCE"):
+            self.assertFalse(w.is_reserved({"owner": owner}), owner)
+
+    def test_the_old_reserved_cases_stay_reserved(self):
+        for owner in ("Aamer", "aamer", "Waiting on Aamer", "Aamer approval needed", "Aamer (decision)", "Delivery Lead for Aamer"):
+            self.assertTrue(w.is_reserved({"owner": owner}), owner)
+
+    def test_the_reserved_flag_always_wins_even_for_a_project_name(self):
+        for owner in ("Aamer Wealth Intelligence coordinator", "Aamer OS", "Checker", None):
+            self.assertTrue(w.is_reserved({"owner": owner, "reserved": True}), owner)
+
+    def test_an_item_owned_by_a_project_with_aamer_in_its_name_climbs_the_ladder(self):
+        sent = []
+        ticks(Src([item(owner="Aamer Wealth Intelligence coordinator")]), 2, sent)
+        self.assertEqual([p["step"] for p in sent], [1])
+        sent = []
+        ticks(Src([item(owner="Aamer Wealth Intelligence coordinator", reserved=True), item(id="oi-2", owner="Aamer approval needed")]), 8, sent)
+        self.assertEqual(sent, [])
+
+    def test_a_late_item_of_an_ordinary_owner_is_not_reserved(self):
+        self.assertFalse(w.is_reserved({"owner": "Checker"}))
+        self.assertFalse(w.is_reserved({}))
+
+
 class RelayProbe(unittest.TestCase):
     """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
     PROBE_T = datetime(2026, 10, 29, 6, 0, tzinfo=timezone.utc)
