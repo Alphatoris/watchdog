@@ -16,35 +16,17 @@
   },
   "1191a16137705683": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
-  },
-  "1f88ffd67c844ea8": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
-  },
-  "228cd47072f76957": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
   },
   "249b3bc181cd13be": {
    "since": "2026-10-29T07:47:53Z"
   },
   "2ab55d5240babb01": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
@@ -95,18 +77,6 @@
    "pending": false,
    "tick": 830
   },
-  "5cc18f7c04c4c841": {
-   "since": "2026-10-31T09:05:57Z"
-  },
-  "851c5e9c8493edd6": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
-  },
   "a63142a6fd22a826": {
    "first_tick": 832,
    "pr_down": "pr_unacked",
@@ -118,7 +88,7 @@
   },
   "a96c6169aba2dfa7": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
@@ -132,19 +102,10 @@
     3
    ]
   },
-  "c4cd456f6716fa44": {
-   "first_tick": 734,
+  "c75e5a210bc3e749": {
+   "first_tick": 874,
    "steps": [
     2
-   ]
-  },
-  "cfcd158c33b12c89": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
    ]
   },
   "d10d62026f479d36": {
@@ -156,18 +117,9 @@
     3
    ]
   },
-  "d3b96af451c71f10": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
-   "steps": [
-    1,
-    2,
-    3
-   ]
-  },
   "d692678218abe0b6": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
@@ -183,12 +135,12 @@
   },
   "fe15919007ec3d74": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T09:35:57Z",
- "tick_no": 873
+ "last_tick_at": "2026-10-31T09:36:16Z",
+ "tick_no": 874
 }
