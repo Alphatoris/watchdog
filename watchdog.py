@@ -103,19 +103,49 @@ class DirSource:
 
 
 # ---- decisions -----------------------------------------------------------
-def late_items(project, stage, items, now):
-    """Return list of (item_id, due_iso, reserved) that are late."""
+NOT_RESERVED_OWNERS = ("aamer wealth intelligence", "aamer os")   # project names that start with the owner's first name
+
+
+def is_reserved(it):
+    """An item is reserved (Aamer's own decision: never chased) if it says reserved, or its owner names Aamer. Fail closed: any owner containing
+    "aamer" is reserved, except an owner that starts with the name of a project (Aamer Wealth Intelligence, Aamer OS) unless reserved is set."""
+    if it.get("reserved"):
+        return True
+    owner = str(it.get("owner", "")).lower().strip()
+    return "aamer" in owner and not owner.startswith(NOT_RESERVED_OWNERS)
+
+
+CHECKPOINT_ITEM = "checkpoint-missed:"          # + the item id: an item's own checkpoint passed with nobody moving it forward
+CHECKPOINT_ENTRY = "registry-checkpoint-missed"  # a registry entry's next_checkpoint passed
+
+
+def dl_only(item):
+    """Late items that go to the Delivery Lead only: never the coordinator, never the owner."""
+    return item in DL_ONLY or item == CHECKPOINT_ENTRY or str(item).startswith(CHECKPOINT_ITEM)
+
+
+def late_items(project, stage, items, now, checkpoints=True):
+    """Return list of (item_id, due_iso, reserved) that are late. An open item may carry an optional "checkpoint" time (the owner
+    moves it forward at each check-in); once it has passed, a Delivery Lead only late item reports the miss, keyed by that time."""
     out = []
     for it in (items or {}).get("items", []):
         if it.get("done") or it.get("dropped"):
             continue
+        if checkpoints and it.get("checkpoint"):
+            try:
+                cp = parse(it.get("checkpoint"))
+            except ValueError:
+                cp = None
+                print("an item has a checkpoint that is not a time: ignored", file=sys.stderr)
+            if cp is not None and cp < now:
+                out.append((CHECKPOINT_ITEM + str(it["id"]), it["checkpoint"], is_reserved(it)))
         due = parse(it.get("due"))
         given = parse(it.get("given"))
         past_due = due is not None and due < now
         unreceived = (not it.get("received")) and given is not None and given + RECEIVE_GRACE < now
         if past_due or unreceived:
             when = it.get("due") or iso(given + RECEIVE_GRACE)
-            reserved = bool(it.get("reserved")) or "aamer" in str(it.get("owner", "")).lower()
+            reserved = is_reserved(it)
             out.append((it["id"], when, reserved))
     if stage:
         cp = parse(stage.get("next_checkpoint"))
@@ -147,7 +177,7 @@ def route_dl_items(dl_items, entries, now):
             continue
         if tgt == DL_PROJECT:
             continue                              # the Delivery Lead's own project: an ordinary item
-        if it.get("reserved") or "aamer" in str(it.get("owner", "")).lower():
+        if is_reserved(it):
             continue                              # reserved never climbs
         routed.setdefault(tgt, []).append(it)
     return routed
@@ -239,9 +269,18 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
             own_dl = pid == DL_PROJECT
-            dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now)] if not paused else []
+            dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now, checkpoints=False)] if not paused else []
             dl_req = {"dl:" + str(i.get("id")): wake_request(i) for i in routed.get(pid, [])} if not paused else {}   # ids only
             late_ladder = [l for l in late if not (own_dl and l[0] in routed_ids)] + dl_routed   # a routed item climbs under its target, never twice
+            if not paused and e.get("next_checkpoint"):          # a registry entry's own checkpoint: the entry owner moves it forward
+                try:
+                    cp_e = parse(e["next_checkpoint"])
+                except ValueError:
+                    cp_e = None
+                    print("a registry entry has a next_checkpoint that is not a time: ignored", file=sys.stderr)
+                if cp_e is not None and cp_e < now:
+                    late.append((CHECKPOINT_ENTRY, e["next_checkpoint"], False))
+                    late_ladder.append((CHECKPOINT_ENTRY, e["next_checkpoint"], False))
             gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
             if not paused:
                 try:
@@ -319,8 +358,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     del s["dl_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
-            steps = ((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS))
-            if item in critical and item not in DL_ONLY:
+            steps = ((2, 0),) if dl_only(item) else ((1, 0), (2, STEP2_TICKS))
+            if item in critical and not dl_only(item):
                 steps = ((3, 0),) + steps     # critical security, data or major failure: the owner at once; time alone never reaches him
             for step, need in steps:
                 if step in s["steps"] or age < need:
