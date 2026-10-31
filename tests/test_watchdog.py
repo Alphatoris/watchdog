@@ -725,6 +725,30 @@ class FastPass(unittest.TestCase):
         with open(os.path.join(d, "state.json")) as fh:
             return json.load(fh)
 
+    def _ticks(self, d):
+        with open(os.path.join(d, "ticks.jsonl")) as fh:
+            return [json.loads(x) for x in fh]
+
+    def test_sends_in_a_fast_pass_are_logged_on_the_next_tick_line(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            self._main(d, fx, "2026-10-28T10:01:00Z", True)                   # step 1 sent in a fast pass
+            self.assertFalse(os.path.exists(os.path.join(d, "ticks.jsonl")))
+            self._main(d, fx, "2026-10-28T10:05:00Z", False)
+            line = self._ticks(d)[0]
+            self.assertEqual([(e["step"], e.get("pass")) for e in line["sent"]], [(1, "fast")])
+            self.assertNotIn("sent_pending", self._state(d))                  # carried once, then cleared
+            self._main(d, fx, "2026-10-28T10:10:00Z", False)
+            self.assertEqual(self._ticks(d)[1]["sent"], [])
+
+    def test_step_three_is_never_in_the_public_send_log(self):
+        src = Src([item(severity="critical")])
+        log = []
+        w.run_tick(src, {}, T0, lambda p: True, 1, None, sent_log=log)
+        self.assertTrue(log)                                                  # step 1 is there
+        self.assertNotIn(3, [e["step"] for e in log])
+        self.assertEqual(len([e for e in log if e["step"] is None]), 0)       # and no unlabelled entry stands in for it
+
     def test_fast_pass_wakes_a_new_item_without_counting_a_tick_or_publishing_the_feed(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
             self._fx(fx, [item()])
@@ -790,6 +814,44 @@ class FastPass(unittest.TestCase):
 
 def iso_(d):
     return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+class SentLog(unittest.TestCase):
+    """Every send is recorded counts-only (label, step, route, whether the runner fired), so a runner resend shows in public data."""
+    SUB = {"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}
+
+    def _run(self, n):
+        reg = {"projects": [
+            {"project": "delivery-lead", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1", "wake_subscriber": self.SUB},
+            {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C", "wake_pr": "o/r#5", "wake_subscriber": self.SUB}]}
+        src = Src([item(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        src.f[w.REGISTRY_PATH] = reg
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"] = {"items": []}
+        state, log = {}, []
+        for i in range(n):
+            tick = []
+            w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: True, i + 1, lambda pr, at: False, sent_log=tick)
+            log.append(tick)
+        return log
+
+    def test_a_stopped_relay_shows_comment_then_runner_resend_then_step_two(self):
+        log = self._run(6)
+        self.assertEqual(log[0], [{"label": "P0", "step": 1, "route": "pr_comment", "runner_fired": False, "ok": True}])
+        self.assertEqual(log[1], [])
+        resend = [e for t in log for e in t if e["route"] == "runner" and e["step"] == 1]
+        self.assertEqual([(e["label"], e["step"], e["runner_fired"]) for e in resend], [("P0", 1, True)])   # the resend is visible
+        step2 = [i for i, t in enumerate(log) if any(e["step"] == 2 for e in t)]
+        resend_tick = [i for i, t in enumerate(log) if any(e["route"] == "runner" and e["step"] == 1 for e in t)]
+        self.assertEqual(step2[0], resend_tick[0] + 1)      # one step per tick: step 2 follows the resend by one tick
+
+    def test_the_log_holds_no_ids_or_free_text(self):
+        for t in self._run(6):
+            for e in t:
+                self.assertEqual(set(e), {"label", "step", "route", "runner_fired", "ok"})
+
+    def test_no_log_is_kept_when_none_is_asked_for(self):
+        src = Src([item(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        w.run_tick(src, {}, T0, lambda p: True, 1, None)     # the old call still works
+
 
 class ReservedOwner(unittest.TestCase):
     def test_project_names_that_start_with_aamer_are_not_reserved(self):
