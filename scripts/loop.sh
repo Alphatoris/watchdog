@@ -14,16 +14,22 @@ guard() {
 }
 guard || { echo "another loop is running; exiting"; exit 0; }
 START=$(date +%s)
-for i in $(seq 0 69); do
-  TARGET=$((START + i * 300))
+# A pass every 60 s. Every fifth pass is the 5-minute tick (it counts, moves the ladder clock and publishes the feed);
+# the passes between are fast: they only send what is due for a newly late item, so a new item wakes its owner within a minute.
+for i in $(seq 0 349); do
+  TARGET=$((START + i * 60))
   NOW=$(date +%s)
   [ "$NOW" -lt "$TARGET" ] && sleep $((TARGET - NOW))
-  python3 watchdog.py --out status-out
+  if [ $((i % 5)) -eq 0 ]; then
+    python3 watchdog.py --out status-out
+  else
+    python3 watchdog.py --out status-out --fast
+  fi
   RC=$?
   ( cd status-out && git config user.name watchdog && git config user.email watchdog@users.noreply.github.com \
     && tail -n 300 ticks.jsonl > t && mv t ticks.jsonl && git add -A \
     && { git diff --cached --quiet || git commit -q -m tick; } \
-    && { git push -q origin status || { git pull -q --rebase origin status && git push -q origin status; }; } ) || echo "publish failed"
+    && { [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/status 2>/dev/null)" ] || { git push -q origin status || { git pull -q --rebase origin status && git push -q origin status; }; }; } ) || echo "publish failed"
   [ "$RC" != "0" ] && echo "tick exit $RC"
 done
 gh workflow run watchdog.yml --ref main

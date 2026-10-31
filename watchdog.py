@@ -505,6 +505,8 @@ def main():
     ap.add_argument("--fixtures", help="read records from a directory instead of GitHub")
     ap.add_argument("--now")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--fast", action="store_true", help="between 5-minute ticks: look for new late items and send what is due, "
+                    "but do not count a tick, move the ladder clock, or publish the feed")
     a = ap.parse_args()
     now = parse(a.now) if a.now else datetime.now(timezone.utc)
     src = DirSource(a.fixtures) if a.fixtures else GitHubSource(os.environ["READ_KEY"])
@@ -512,7 +514,9 @@ def main():
     os.makedirs(sdir, exist_ok=True)
     sp = os.path.join(a.out, "state.json")
     st = json.load(open(sp)) if os.path.exists(sp) else {"tick_no": 0, "items": {}}
-    st["tick_no"] += 1
+    before = json.dumps(st, sort_keys=True)
+    if not a.fast:
+        st["tick_no"] += 1                      # a fast pass keeps the 5-minute tick number: every ladder timing counts these ticks
     send = (lambda p: print("DRY-RUN wake", json.dumps(p)) or True) if a.dry_run else \
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
     try:
@@ -520,6 +524,12 @@ def main():
     except RegistryError as ex:
         print(f"FAILED: {ex}", file=sys.stderr)
         sys.exit(1)
+    if a.fast:
+        if json.dumps(st, sort_keys=True) != before:
+            json.dump(st, open(sp, "w"), indent=1, sort_keys=True)   # a wake was sent or an ack seen: remember it for the next pass
+        if feed["errors"]:
+            print(f"fast pass: {feed['errors']} project error(s)", file=sys.stderr)
+        return
     lag = (now - now.replace(minute=now.minute - now.minute % 5, second=0, microsecond=0)).total_seconds()
     prev = parse(st.get("last_tick_at"))
     feed["tick_no"], feed["lag_seconds_past_5min_mark"] = st["tick_no"], int(lag)

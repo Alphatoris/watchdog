@@ -705,6 +705,71 @@ class Step2OnDlPage(unittest.TestCase):
         self.assertEqual(seen, ["Watchdog wake: P1 step 2 (for P0)", "Watchdog wake: P0 step 1", "Watchdog wake: P1 step 2"])
 
 
+class FastPass(unittest.TestCase):
+    """A fast pass (every minute between the 5-minute ticks) wakes for a new late item at once but never moves the ladder clock."""
+    def _fx(self, fx, items):
+        for p, v in Src(items).f.items():
+            os.makedirs(os.path.dirname(os.path.join(fx, p)), exist_ok=True)
+            with open(os.path.join(fx, p), "w") as fh:
+                json.dump(v, fh)
+
+    def _main(self, d, fx, now, fast):
+        import contextlib, io
+        sys.argv = ["w", "--out", d, "--fixtures", fx, "--now", now, "--dry-run"] + (["--fast"] if fast else [])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            w.main()
+        return [json.loads(x.split("wake ", 1)[1])["step"] for x in buf.getvalue().splitlines() if x.startswith("DRY-RUN wake")]
+
+    def _state(self, d):
+        with open(os.path.join(d, "state.json")) as fh:
+            return json.load(fh)
+
+    def test_fast_pass_wakes_a_new_item_without_counting_a_tick_or_publishing_the_feed(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            steps = self._main(d, fx, "2026-10-28T10:01:00Z", True)
+            self.assertEqual(steps, [1])
+            st = self._state(d)
+            self.assertEqual(st["tick_no"], 0)
+            self.assertNotIn("last_tick_at", st)
+            self.assertFalse(os.path.exists(os.path.join(d, "status/projects.json")))
+            self.assertFalse(os.path.exists(os.path.join(d, "ticks.jsonl")))
+
+    def test_the_next_five_minute_tick_does_not_send_it_again(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:01:00Z", True), [1])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:02:00Z", True), [])        # nothing new
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:05:00Z", False), [])       # the tick itself: no repeat
+            self.assertEqual(self._state(d)["tick_no"], 1)
+
+    def test_ladder_timings_are_unchanged_by_the_fast_passes_between_ticks(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            sent = []
+            for tick in range(4):
+                base = datetime(2026, 10, 28, 10, 0, tzinfo=timezone.utc) + timedelta(minutes=5 * tick)
+                for minute in range(5):
+                    got = self._main(d, fx, iso_(base + timedelta(minutes=minute)), minute != 0)
+                    sent += [(tick + 1, s) for s in got]
+            self.assertEqual(sent, [(1, 1), (3, 2)])                  # step 1 at tick 1, step 2 two ticks later, as with 5-minute passes only
+
+    def test_a_fast_pass_with_nothing_to_do_leaves_state_untouched(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [])
+            self._main(d, fx, "2026-10-28T10:00:00Z", False)
+            with open(os.path.join(d, "state.json")) as fh:
+                before = fh.read()
+            self._main(d, fx, "2026-10-28T10:01:00Z", True)
+            with open(os.path.join(d, "state.json")) as fh:
+                self.assertEqual(fh.read(), before)
+
+
+def iso_(d):
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 class RelayProbe(unittest.TestCase):
     """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
     PROBE_T = datetime(2026, 10, 29, 6, 0, tzinfo=timezone.utc)
