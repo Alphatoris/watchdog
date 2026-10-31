@@ -1,7 +1,7 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 300,
- "lag_seconds_past_5min_mark": 298,
+ "gap_seconds_since_last_tick": 75,
+ "lag_seconds_past_5min_mark": 73,
  "projects": {
   "P0": {
    "gate": "unknown",
@@ -76,6 +76,6 @@
    "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-31T15:04:58Z",
- "tick_no": 940
+ "tick_at": "2026-10-31T15:06:13Z",
+ "tick_no": 941
 }
