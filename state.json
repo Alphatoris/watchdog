@@ -41,7 +41,7 @@
   },
   "3ba1c2858326a3fb": {
    "at": "2026-10-31T06:00:57Z",
-   "down": "pr_unacked",
+   "down": null,
    "last": "2026-10-31T06:00:57Z",
    "pending": false,
    "tick": 830
@@ -70,7 +70,7 @@
   "7b0c022ed7902114": {
    "first_tick": 914,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T12:57:02Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 914
@@ -79,13 +79,40 @@
     1
    ]
   },
-  "a63142a6fd22a826": {
-   "first_tick": 832,
-   "pr_down": "pr_unacked",
+  "7bc318bf86a89452": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#20",
+    "tick": 915
+   },
    "steps": [
-    1,
-    2,
-    3
+    1
+   ]
+  },
+  "83c5a17ea3a14c69": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#22",
+    "tick": 915
+   },
+   "steps": [
+    1
+   ]
+  },
+  "a7bb91d5172f6ef9": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#21",
+    "tick": 915
+   },
+   "steps": [
+    1
    ]
   },
   "a96c6169aba2dfa7": {
@@ -108,6 +135,42 @@
    "pending": false,
    "tick": 830
   },
+  "d86b78f4b638a2f7": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 915
+   },
+   "steps": [
+    1
+   ]
+  },
+  "d8a99b4b4e28cff6": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 915
+   },
+   "steps": [
+    1
+   ]
+  },
+  "e2115e300201a86e": {
+   "first_tick": 915,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-10-31T13:02:02Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 915
+   },
+   "steps": [
+    1
+   ]
+  },
   "f0d662dd462f3abf": {
    "first_tick": 832,
    "pr_down": "pr_unacked",
@@ -125,6 +188,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T12:57:02Z",
- "tick_no": 914
+ "last_tick_at": "2026-10-31T13:02:02Z",
+ "tick_no": 915
 }
