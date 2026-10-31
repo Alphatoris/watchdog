@@ -4,7 +4,7 @@ wakes through the wake runner, writes a status feed. Standard library only.
 
 Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
-coordinator; step 2 the Delivery Lead after 2 more ticks. Step 3, the owner list and
+coordinator; step 2 the Delivery Lead after 2 more ticks (a comment on the Delivery Lead's wake page). Step 3, the owner list and
 phone push, is by severity and not by time (playbooks rev-055, cycle rules section 21 item 3):
 only an item marked `"severity": "critical"` reaches the owner, at once. Each step once.
 Reserved items never climb the ladder.
@@ -219,6 +219,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
     commented = {}                              # project id -> the step-1 PR comment already posted this tick
+    commented2 = {}                             # project id -> the step-2 comment on the Delivery Lead's page already posted this tick
     try:
         routed = route_dl_items(source.get(DL_ITEMS_PATH), entries, now)   # Delivery Lead requests addressed to a project
     except Exception as ex:
@@ -307,6 +308,14 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     seen.add(pk)
                     s["steps"] = [x for x in s["steps"] if x != 1]   # and step 1 is sent again by the wake runner
                     del s["pr_wake"]
+            dw = s.get("dl_wake")              # a step-2 comment on the Delivery Lead's page must be acknowledged too
+            if dw and not dw["acked"] and acked:
+                if acked(dw["pr"], dw["at"]):
+                    dw["acked"] = True
+                elif tick_no - dw["tick"] >= PR_ACK_TICKS:
+                    s["dl_down"] = True                              # the Delivery Lead's relay did not answer: step 2 is sent again by the wake runner
+                    s["steps"] = [x for x in s["steps"] if x != 2]
+                    del s["dl_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
             steps = ((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS))
@@ -325,6 +334,25 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                         s["steps"].append(1)
                         s["pr_wake"] = dict(commented[pid])   # same comment, so each item is still acknowledged on its own
                         break
+                page = dl_step2_page(entries, dup, state, now) if step == 2 and pid != DL_PROJECT and not s.get("dl_down") else None
+                if page:                                               # step 2: a bot comment on the Delivery Lead's wake page, not the runner
+                    if pid in commented2:                              # one step-2 comment per project per tick
+                        s["steps"].append(2)
+                        s["dl_wake"] = dict(commented2[pid])
+                        break
+                    payload.update(wake_pr=page[0], label=page[1], for_label=lab)
+                    ok = send(payload)
+                    if not ok:                                         # comment refused: same step by the runner, this tick
+                        for k_ in ("wake_pr", "label", "for_label"):
+                            payload.pop(k_, None)
+                        s["dl_down"] = True
+                        ok = send(payload)
+                    if ok:
+                        s["steps"].append(2)
+                        if payload.get("wake_pr"):
+                            s["dl_wake"] = {"tick": tick_no, "at": iso(now), "pr": page[0], "acked": False}
+                            commented2[pid] = s["dl_wake"]
+                    break
                 ok = send(payload)
                 if not ok and payload.get("wake_pr"):                # the comment could not be posted (for example no permission)
                     s["pr_down"] = "pr_failed"
@@ -345,6 +373,19 @@ def run_tick(source, state, now, send, tick_no, acked=None):
 
 
 PR_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$")
+
+
+def dl_step2_page(entries, dup, state, now):
+    """(wake_pr, label) of the Delivery Lead's wake page when step 2 can use it: the registry names it, it has a live subscriber,
+    it is not shared, the Delivery Lead is not paused, and neither its route mark nor its daily probe says its relay is down.
+    Otherwise None and step 2 uses the wake runner as before. The session id behind the runner can go stale; the page cannot."""
+    e = next((x for x in entries if isinstance(x, dict) and x.get("project") == DL_PROJECT), None)
+    if not e or e.get("paused") or not valid_pr(e.get("wake_pr")) or e["wake_pr"] in dup or not subscriber_ok(e, now):
+        return None
+    if state.get(key_of(DL_PROJECT, "route", "")) or (state.get(key_of(DL_PROJECT, "probe", "")) or {}).get("down"):
+        return None
+    lab = e.get("public_label")
+    return (e["wake_pr"], lab) if isinstance(lab, str) and LABEL_RE.fullmatch(lab) else None
 
 
 def valid_pr(x):
@@ -396,10 +437,12 @@ def subscriber_ok(e, now):
     return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and now >= t)   # a future time is rejected
 
 
-def comment_wake(wake_pr, label, step, token):
-    """Comment on the project's wake pull request; a subscribed session wakes in seconds. Public text: label and step only."""
+def comment_wake(wake_pr, label, step, token, for_label=None):
+    """Comment on a wake pull request; a subscribed session wakes in seconds. Public text: opaque labels and the step only.
+    A step-2 comment on the Delivery Lead's page adds the label of the project that is late: "step 2 (for P4)"."""
     repo, num = wake_pr.rsplit("#", 1)
-    body = json.dumps({"body": f"Watchdog wake: {label} step {step}"}).encode()
+    tail = f" (for {for_label})" if isinstance(for_label, str) and LABEL_RE.fullmatch(for_label) else ""
+    body = json.dumps({"body": f"Watchdog wake: {label} step {step}{tail}"}).encode()
     req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
                                  method="POST", headers={"Authorization": f"Bearer {token}",
                                                          "Accept": "application/vnd.github+json",
@@ -439,7 +482,7 @@ def pr_acked(token):
 def fire_wake(url, key):
     def send(payload):
         if payload.get("wake_pr"):
-            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""))
+            return comment_wake(payload["wake_pr"], payload["label"], payload["step"], os.environ.get("GH_TOKEN", ""), payload.get("for_label"))
         if not url:
             print("WAKE_URL not set; not sending", file=sys.stderr)
             return False
