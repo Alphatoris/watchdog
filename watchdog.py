@@ -4,8 +4,10 @@ wakes through the wake runner, writes a status feed. Standard library only.
 
 Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
-coordinator; step 2 the Delivery Lead after 2 more ticks; step 3 the owner list and
-phone push after 2 more. Each step once. Reserved items never climb the ladder.
+coordinator; step 2 the Delivery Lead after 2 more ticks. Step 3, the owner list and
+phone push, is by severity and not by time (playbooks rev-053, cycle rules section 21 item 3):
+only an item marked `"severity": "critical"` reaches the owner, at once. Each step once.
+Reserved items never climb the ladder.
 The public repo holds no project data: state keys are keyed hashes (HMAC), and the
 feed holds, per project, only a stage number, a state word, counts of open and late
 items and a wake-route word, under opaque labels. The only times in the published
@@ -18,7 +20,7 @@ LIBRARY = "Alphatoris/Alphatoris-Library"
 REGISTRY_PATH = "projects/alphatoris-wide/stages/REGISTRY.json"
 DL_ITEMS_PATH = "projects/alphatoris-wide/stages/OPEN-ITEMS.json"
 RECEIVE_GRACE = timedelta(minutes=30)
-STEP2_TICKS, STEP3_TICKS = 2, 4          # ticks after first detection
+STEP2_TICKS = 2                          # ticks after first detection
 CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waiting on aamer"}
 
 
@@ -204,6 +206,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             feed[lab] = {"error": "project_error"}
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
+        critical = {i.get("id") for i in (items or {}).get("items", []) if i.get("severity") == "critical"}
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
         stage_no = (stage or {}).get("stage")      # public feed (Aamer, 28 Oct 16:05 UTC): counts only, no names or free text
         feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
@@ -253,7 +256,10 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     del s["pr_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
-            for step, need in (((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS), (3, STEP3_TICKS))):
+            steps = ((2, 0),) if item in DL_ONLY else ((1, 0), (2, STEP2_TICKS))
+            if item in critical and item not in DL_ONLY:
+                steps = ((3, 0),) + steps     # critical security, data or major failure: the owner at once; time alone never reaches him
+            for step, need in steps:
                 if step in s["steps"] or age < need:
                     continue
                 target = {1: "coordinator", 2: "delivery_lead", 3: "owner"}[step]

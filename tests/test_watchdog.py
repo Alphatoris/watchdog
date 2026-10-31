@@ -46,7 +46,7 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([item()]), 8, sent)
         self.assertEqual([(p["step"], p["target"]) for p in sent],
-                         [(1, "coordinator"), (2, "delivery_lead"), (3, "owner")])
+                         [(1, "coordinator"), (2, "delivery_lead")])
 
     def test_t2_step_times_are_two_ticks_apart(self):
         sent, state = [], {}
@@ -56,7 +56,30 @@ class T(unittest.TestCase):
             w.run_tick(Src([item()]), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1)
             if len(sent) > before:
                 order.append(i + 1)
-        self.assertEqual(order, [1, 3, 5])
+        self.assertEqual(order, [1, 3])
+
+    def test_time_alone_never_reaches_the_owner(self):
+        sent = []
+        ticks(Src([item()]), 60, sent)
+        self.assertNotIn("owner", [p["target"] for p in sent])
+
+    def test_critical_item_goes_to_the_owner_at_once_and_first(self):
+        sent = []
+        ticks(Src([item(severity="critical")]), 8, sent)
+        self.assertEqual([(p["step"], p["target"]) for p in sent],
+                         [(3, "owner"), (1, "coordinator"), (2, "delivery_lead")])
+        self.assertEqual(len([p for p in sent if p["target"] == "owner"]), 1)
+
+    def test_critical_reserved_item_still_never_climbs(self):
+        sent = []
+        ticks(Src([item(severity="critical", reserved=True)]), 8, sent)
+        self.assertEqual(sent, [])
+
+    def test_dl_only_item_never_reaches_the_owner_even_if_critical(self):
+        src = Src([item(id=next(iter(w.DL_ONLY)), severity="critical")])
+        sent = []
+        ticks(src, 8, sent)
+        self.assertNotIn("owner", [p["target"] for p in sent])
 
     def test_reserved_never_climbs(self):
         sent = []
@@ -146,7 +169,7 @@ class T(unittest.TestCase):
         sent, state = [], {}
         for i in range(8):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
-        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False)])
 
     def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
         sent = []
@@ -236,7 +259,7 @@ class T(unittest.TestCase):
         sent, state = [], {}
         for i in range(5):
             w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
-        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False), (3, False)])
+        self.assertEqual([(p["step"], "wake_pr" in p) for p in sent], [(1, True), (1, False), (2, False)])
 
     def test_feed_is_counts_only_no_names_or_free_text(self):
         stage = {"stage": 2, "stage_name": "Requirements SECRETNAME", "state": "blocked", "updated": "2026-10-28T06:30:00Z",
@@ -474,7 +497,7 @@ class RelayProbe(unittest.TestCase):
             r = self._tick(self._src(), state, self.PROBE_T + timedelta(minutes=5 * i), i + 1, sent, ack=False)
             routes.append(r["projects"]["P0"]["wake_route"])
         ladder = [(p["step"], p["target"], "wake_pr" in p) for p in sent if p.get("step") != "probe"]
-        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False), (3, "owner", False)])
+        self.assertEqual(ladder, [(1, "coordinator", False), (2, "delivery_lead", False)])
         self.assertEqual(routes[-1], "pr_unacked")
 
     def test_unacked_probe_clears_when_the_relay_acks(self):
