@@ -465,7 +465,7 @@
   },
   "e3bee87e2d421d7c": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-10-31T17:43:50Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 974
@@ -517,16 +517,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T17:42:50Z",
- "sent_pending": [
-  {
-   "label": "PT",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  }
- ],
- "tick_no": 973
+ "last_tick_at": "2026-10-31T17:47:50Z",
+ "tick_no": 974
 }
