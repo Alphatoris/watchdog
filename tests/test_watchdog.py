@@ -371,6 +371,25 @@ class T(unittest.TestCase):
             self.assertEqual(feed["projects"]["P0"]["gate"], want, status)
         self.assertNotIn("M2", json.dumps(feed))                      # words only: the milestone itself is never published
 
+    def test_feed_gate_is_never_ok_when_either_side_is_unreadable(self):
+        good = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        cases = ((None, "garbage"), (None, {}), ({"stage": "three"}, {"x": 1}), ({"stage": "three"}, {"accepted_milestone": "M2"}),
+                 ({"stage": True}, {"accepted_milestone": "M2"}), (good, "garbage"), (good, {}), (good, {"accepted_milestone": 7}),
+                 (None, {"accepted_milestone": "M2"}))
+        for stage, status in cases:
+            feed = w.run_tick(Src([], stage, status), {}, T0, lambda p: True, 1)
+            self.assertEqual(feed["projects"]["P0"]["gate"], "unreadable", (stage, status))
+
+    def test_failed_owner_send_does_not_block_steps_one_and_two(self):
+        sent, state = [], {}
+        def send(p):
+            sent.append((p["step"], p["target"]))
+            return p["step"] != 3                       # the owner send keeps failing
+        for i in range(8):
+            w.run_tick(Src([item(severity="critical")]), state, T0 + timedelta(minutes=5 * i), send, i + 1)
+        self.assertEqual([x for x in sent if x[0] != 3], [(1, "coordinator"), (2, "delivery_lead")])
+        self.assertGreater(len([x for x in sent if x[0] == 3]), 1)     # retried each tick until it goes through
+
     def test_feed_gate_is_unknown_for_a_paused_project(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
         src = Src([], s, {"accepted_milestone": "M2"})

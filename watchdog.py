@@ -148,10 +148,17 @@ def milestone_late(stage, status):
     return []
 
 
-def gate_word(status, gate_late):
-    """Public feed word for the evidence gate: unknown (no status file), unreadable, ahead, or ok. Words only, no milestone."""
+def gate_word(status, gate_late, stage=None):
+    """Public feed word for the evidence gate: unknown (no status file), unreadable, ahead, or ok. Words only, no milestone.
+    ok is only said when both sides are readable: a status file with a valid accepted_milestone and a stage that is an int."""
     if status is None:
         return "unknown"
+    got = status.get("accepted_milestone") if isinstance(status, dict) else None
+    shown = stage.get("stage") if isinstance(stage, dict) else None
+    if not isinstance(status, dict) or "accepted_milestone" not in status \
+            or (got is not None and not (isinstance(got, str) and MILESTONE_RE.fullmatch(got))) \
+            or isinstance(shown, bool) or not isinstance(shown, int):
+        return "unreadable"
     kinds = {l[0] for l in gate_late}
     return "unreadable" if "gate-status-unreadable" in kinds else "ahead" if "stage-ahead-of-evidence" in kinds else "ok"
 
@@ -198,7 +205,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     status = source.get(f"ledger/status/{pid}.json")
                     gate_late = milestone_late(stage, status)
                     late += gate_late
-                    gate = gate_word(status, gate_late)
+                    gate = gate_word(status, gate_late, stage)
                 except Exception as ex:          # a failed status read must not drop the project's other late items
                     print(f"gate status read error: {type(ex).__name__}: {ex}", file=sys.stderr)
         except Exception as ex:                  # one bad project never stops the others
@@ -278,7 +285,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     s["steps"].append(step)
                     if payload.get("wake_pr"):
                         s["pr_wake"] = {"tick": tick_no, "at": iso(now), "pr": payload["wake_pr"], "acked": False}
-                break                          # one step per tick
+                if step != 3:
+                    break                      # one step per tick; the owner send (3) is separate and never blocks steps 1 and 2
     for k in list(state):                      # closed or re-dated items drop out
         if k not in seen:
             del state[k]
