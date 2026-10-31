@@ -188,7 +188,14 @@ class T(unittest.TestCase):
             for comments, want in (([{"user": {"type": "Bot"}, "author_association": "NONE"}], False),
                                    ([{"user": {"type": "User"}, "author_association": "NONE"}], False),
                                    ([{"user": {"type": "User"}, "author_association": "OWNER", "created_at": "2026-10-28T10:01:00Z"}], True),
-                                   ([{"user": {"type": "User"}, "author_association": "OWNER", "created_at": "2026-10-28T09:00:00Z"}], False)):
+                                   ([{"user": {"type": "User"}, "author_association": "OWNER", "created_at": "2026-10-28T09:00:00Z"}], False),
+                                   # the relays' agent account (association COLLABORATOR) counts, by id and login together
+                                   ([{"user": {"type": "User", "id": 350444722, "login": "alphatoris-agent"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T10:01:00Z"}], True),
+                                   ([{"user": {"type": "User", "id": 350444722, "login": "alphatoris-agent"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T09:00:00Z"}], False),
+                                   ([{"user": {"type": "User", "id": 1, "login": "alphatoris-agent"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T10:01:00Z"}], False),
+                                   ([{"user": {"type": "User", "id": 350444722, "login": "someone-else"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T10:01:00Z"}], False),
+                                   ([{"user": {"type": "User", "id": 2, "login": "other-collaborator"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T10:01:00Z"}], False),
+                                   ([{"user": {"type": "Bot", "id": 350444722, "login": "alphatoris-agent"}, "author_association": "COLLABORATOR", "created_at": "2026-10-28T10:01:00Z"}], False)):
                 w.urllib.request.urlopen = fake(comments)
                 self.assertEqual(w.pr_acked("t")("o/r#5", "2026-10-28T10:00:00Z"), want)
         finally:
