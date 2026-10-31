@@ -4,8 +4,8 @@
  "lag_seconds_past_5min_mark": 57,
  "projects": {
   "P0": {
-   "late": 6,
-   "open": 12,
+   "late": 4,
+   "open": 8,
    "stage": null,
    "state": "other",
    "wake_route": "pr_unacked"
@@ -67,6 +67,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-31T09:30:57Z",
- "tick_no": 872
+ "tick_at": "2026-10-31T09:35:57Z",
+ "tick_no": 873
 }
