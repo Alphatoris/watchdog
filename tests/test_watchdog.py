@@ -157,7 +157,7 @@ class T(unittest.TestCase):
         for i, ack in enumerate((False, False, False, True)):
             r = w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1, lambda pr, at, a=ack: a)
             routes.append(r["projects"]["P0"]["wake_route"])
-        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_unacked"])   # sticky for this item
+        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_comment"])   # an ack after the lost wake clears it, even with the item still open
 
     def _pr_src(self, **k):
         reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, **k)
@@ -194,6 +194,23 @@ class T(unittest.TestCase):
         self.assertEqual(len([p for p in sent if p["step"] == 2]), 3)
         self.assertEqual(len([p for p in sent if p["step"] == 1 and "wake_pr" in p]), 1)
         self.assertEqual(len([p for p in sent if p["step"] == 1 and "wake_pr" not in p]), 3)   # unacked: each is sent again by the runner
+
+    def test_item_pr_unacked_clears_when_the_relay_acks_later(self):
+        sent, state = [], {}
+        for i in range(4):                                  # lost wake: no ack for 2 ticks, the item and the project are marked
+            r = w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_unacked")
+        self.assertTrue(any(v.get("pr_down") == "pr_unacked" for v in state.values()))
+        r = w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=20), lambda p: sent.append(dict(p)) or True, 5, lambda pr, at: True)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_comment")      # the late item is still open, but the relay is alive again
+        self.assertEqual(r["projects"]["P0"]["late"], 1)
+        self.assertFalse(any(v.get("pr_down") for v in state.values() if "steps" in v))
+
+    def test_item_pr_unacked_stays_while_nobody_has_acked(self):
+        state = {}
+        for i in range(6):
+            r = w.run_tick(self._pr_src(), state, T0 + timedelta(minutes=5 * i), lambda p: True, i + 1, lambda pr, at: False)
+        self.assertEqual(r["projects"]["P0"]["wake_route"], "pr_unacked")
 
     def test_b2_failed_comment_falls_back_same_tick_and_shows_in_feed(self):
         sent = []

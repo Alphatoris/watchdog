@@ -250,6 +250,8 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             seen.add(k)
             s = state.setdefault(k, {"first_tick": tick_no, "steps": []})
             age = tick_no - s["first_tick"]
+            if s.get("pr_down") == "pr_unacked" and item != "relay-probe" and pk not in state:
+                del s["pr_down"]               # the project's lost-wake mark was cleared by an ack: the item's own copy must not keep the feed at pr_unacked
             if item == "relay-probe":
                 s["pr_down"] = feed[lab]["wake_route"]   # the relay is the thing that is down: the ladder never uses its PR
             pw = s.get("pr_wake")              # a PR-comment wake must be acknowledged by the subscriber
