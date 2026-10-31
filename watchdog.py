@@ -334,7 +334,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
                     reqs = [dl_req[x[0]] for x in dl_routed if dl_req.get(x[0])
                             and 1 not in state.get(key_of(pid, x[0], x[1]), {}).get("steps", [])]   # each request is named once: only items whose step 1 is not yet sent
                     if reqs:
-                        payload["request"] = ",".join(reqs)[:200]
+                        payload["request"] = ",".join(reqs[:8])      # whole ids only, never cut inside one
                     if pid in commented:       # one step-1 comment per project per tick: the relay wakes the coordinator once either way
                         s["steps"].append(1)
                         s["pr_wake"] = dict(commented[pid])   # same comment, so each item is still acknowledged on its own
@@ -442,15 +442,16 @@ def subscriber_ok(e, now):
     return bool(valid_pr(e.get("wake_pr")) and sub.get("session_id") and t and now >= t)   # a future time is rejected
 
 
-REQ_ID_RE = re.compile(r"[A-Za-z0-9._-]{1,60}")
+REQ_ID_RE = re.compile(r"dl-[0-9]{1,6}")
 
 
 def wake_request(item):
-    """The id of a routed Delivery Lead request, for the step-1 comment. The request text stays in the Library list (the
-    wake page is public: ids only, never free text). None unless the id is a plain token."""
-    if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not REQ_ID_RE.fullmatch(item["id"]):
+    """The neutral public id of a routed Delivery Lead request: the entry's "wake_id", which must look like dl-<digits>. The
+    descriptive id and the text stay in the Library list (the wake page is public and the label is tied to a project there).
+    None for any other value: such an entry is woken without naming a request."""
+    if not isinstance(item, dict) or not isinstance(item.get("wake_id"), str) or not REQ_ID_RE.fullmatch(item["wake_id"]):
         return None
-    return item["id"]
+    return item["wake_id"]
 
 
 def comment_wake(wake_pr, label, step, token, for_label=None, request=None):
