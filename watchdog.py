@@ -62,6 +62,22 @@ class GitHubSource:
     def __init__(self, token, repo=LIBRARY):
         self.token, self.repo = token, repo
         self.rate = None                              # (remaining, limit) from the last response, for the run log
+        self.ref = "main"                             # replaced by main's commit sha for one pass (see pin)
+
+    def pin(self):
+        """Read every file of this pass at main's current commit sha. A read by branch name can be served from a cache up to a minute old,
+        which made a new item invisible to a one-minute pass; a sha names one exact tree and is never stale. On any failure the name stays."""
+        req = urllib.request.Request(f"https://api.github.com/repos/{self.repo}/git/ref/heads/main",
+                                     headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github+json",
+                                              "X-GitHub-Api-Version": "2022-11-28", "Cache-Control": "no-cache"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                self._note_rate(r)
+                sha = json.load(r).get("object", {}).get("sha", "")
+            self.ref = sha if re.fullmatch(r"[0-9a-f]{40}", str(sha)) else "main"
+        except Exception as ex:
+            self.ref = "main"
+            print(f"could not pin main ({type(ex).__name__}): reading by branch name", file=sys.stderr)
 
     def _note_rate(self, r):
         try:
@@ -71,7 +87,7 @@ class GitHubSource:
 
     def get(self, path):
         req = urllib.request.Request(
-            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref=main",
+            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref={self.ref}",
             headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github.raw+json",
                      "X-GitHub-Api-Version": "2022-11-28"})
         try:
@@ -86,7 +102,7 @@ class GitHubSource:
 
     def get_text(self, path):
         req = urllib.request.Request(
-            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref=main",
+            f"https://api.github.com/repos/{self.repo}/contents/{path}?ref={self.ref}",
             headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github.raw+json",
                      "X-GitHub-Api-Version": "2022-11-28"})
         try:
@@ -604,6 +620,8 @@ def main():
     a = ap.parse_args()
     now = parse(a.now) if a.now else datetime.now(timezone.utc)
     src = DirSource(a.fixtures) if a.fixtures else GitHubSource(os.environ["READ_KEY"])
+    if hasattr(src, "pin"):
+        src.pin()
     sdir = os.path.join(a.out, "status")
     os.makedirs(sdir, exist_ok=True)
     sp = os.path.join(a.out, "state.json")
