@@ -17,10 +17,9 @@ class Src:
             self.f["projects/watchdog-test/stages/STAGE.json"] = stage
 
     def get(self, p):
+        if p == "ledger/status/watchdog-test.json":
+            return self.log
         return self.f.get(p)
-
-    def get_text(self, p):
-        return self.log if p == "projects/watchdog-test/stages/CLEARANCE-LOG.md" else None
 
 
 def item(**k):
@@ -309,41 +308,47 @@ class T(unittest.TestCase):
         ticks(Src([], s), 1, sent)
         self.assertEqual(sent, [])
 
-    def test_clearance_stage_ahead_of_log_is_late(self):
-        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+    def test_stage_ahead_of_computed_milestone_is_late(self):
+        s = {"stage": 4, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
         sent = []
-        ticks(Src([], s, "# Clearance log\nCleared through stage: 2\n"), 1, sent)
-        self.assertEqual([(p["item"], p["step"], p["target"]) for p in sent], [("stage-without-clearance", 2, "delivery_lead")])
-        ticks(Src([], s, "Cleared through stage: 2\n"), 8, sent)     # a longer run never reaches the coordinator or the owner
+        ticks(Src([], s, {"accepted_milestone": "M2"}), 1, sent)
+        self.assertEqual([(p["item"], p["step"], p["target"]) for p in sent], [("stage-ahead-of-evidence", 2, "delivery_lead")])
+        ticks(Src([], s, {"accepted_milestone": "M2"}), 8, sent)     # a longer run never reaches the coordinator or the owner
         self.assertEqual({p["target"] for p in sent}, {"delivery_lead"})
 
-    def test_clearance_stage_covered_by_log_is_quiet(self):
-        s = {"stage": 2, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
-        sent = []
-        ticks(Src([], s, "Cleared through stage: 2\n"), 1, sent)
-        self.assertEqual(sent, [])
+    def test_stage_covered_by_computed_milestone_is_quiet(self):
+        for shown, got in ((2, "M2"), (3, "M2"), (1, "M0")):     # working in stage n with M(n-1) is normal
+            sent = []
+            ticks(Src([], {"stage": shown, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}, {"accepted_milestone": got}), 1, sent)
+            self.assertEqual(sent, [], (shown, got))
 
-    def test_clearance_no_log_is_quiet_unreadable_log_is_reported(self):
+    def test_no_status_is_quiet_unreadable_status_is_reported_none_reached_is_ahead(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
         sent = []
         ticks(Src([], s, None), 1, sent)
         self.assertEqual(sent, [])
-        ticks(Src([], s, "no header here"), 1, sent)
-        self.assertEqual([p["item"] for p in sent], ["clearance-log-unreadable"])
+        ticks(Src([], s, {"accepted_milestone": "stage 3"}), 1, sent)
+        self.assertEqual([p["item"] for p in sent], ["gate-status-unreadable"])
+        sent = []
+        ticks(Src([], {**s, "stage": 1}, {"accepted_milestone": None}), 1, sent)
+        self.assertEqual([p["item"] for p in sent], ["stage-ahead-of-evidence"])
 
-    def test_clearance_counts_in_late_and_feed_has_no_extra_fields(self):
+    def test_cleared_log_no_longer_counts(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
-        src = Src([], s, "Cleared through stage: 1\n")
+        src = Src([], s, {"accepted_milestone": "M0"})
+        src.get_text = lambda p: "Cleared through stage: 3\n"
         feed = w.run_tick(src, {}, T0, lambda p: True, 1)
         self.assertEqual(feed["projects"]["P0"]["late"], 1)
-        self.assertNotIn("clearance", json.dumps(feed))
+        self.assertNotIn("milestone", json.dumps(feed))
 
-    def test_clearance_log_read_error_keeps_other_late_items(self):
+    def test_status_read_error_keeps_other_late_items(self):
         class Bad(Src):
-            def get_text(self, p):
-                raise OSError("boom")
+            def get(self, p):
+                if p.startswith("ledger/"):
+                    raise OSError("boom")
+                return self.f.get(p)
         sent = []
-        ticks(Bad([item()], {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}, "x"), 1, sent)
+        ticks(Bad([item()], {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}), 1, sent)
         self.assertEqual([p["item"] for p in sent], ["oi-1"])
 
     def test_feed_has_no_project_names(self):
