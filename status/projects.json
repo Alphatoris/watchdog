@@ -8,7 +8,7 @@
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P1": {
    "late": 0,
@@ -22,42 +22,42 @@
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P3": {
    "late": 0,
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P4": {
    "late": 0,
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P5": {
    "late": 0,
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P6": {
    "late": 0,
    "open": 0,
    "stage": null,
    "state": "other",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "P7": {
    "late": 3,
    "open": 1,
    "stage": 3,
    "state": "in_progress",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "PT": {
    "late": 0,
@@ -67,6 +67,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-31T06:05:57Z",
- "tick_no": 831
+ "tick_at": "2026-10-31T06:10:57Z",
+ "tick_no": 832
 }
