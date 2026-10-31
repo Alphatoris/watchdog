@@ -12,12 +12,12 @@
    "wake_route": "pr_comment"
   },
   "P1": {
-   "gate": "unknown",
-   "late": 0,
+   "gate": "ahead",
+   "late": 2,
    "open": 0,
    "stage": 2,
-   "state": "paused",
-   "wake_route": "hourly_guard_only"
+   "state": "blocked",
+   "wake_route": "pr_comment"
   },
   "P2": {
    "gate": "unknown",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-31T13:07:02Z",
- "tick_no": 916
+ "tick_at": "2026-10-31T13:12:02Z",
+ "tick_no": 917
 }
