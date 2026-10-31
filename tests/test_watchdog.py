@@ -621,6 +621,90 @@ class DLRouting(unittest.TestCase):
         self.assertEqual((feed["P0"]["open"], feed["P0"]["late"]), (0, 0))
 
 
+class Step2OnDlPage(unittest.TestCase):
+    """Step 2 ("to the Delivery Lead") is a bot comment on the Delivery Lead's wake page, not the wake runner (a registry session id goes stale)."""
+    SUB = {"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}
+    LATE = dict(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+
+    def _src(self, items=None, dl_sub=True, dl_paused=False, dl_items=None):
+        reg = {"projects": [
+            {"project": "delivery-lead", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1",
+             **({"wake_subscriber": self.SUB} if dl_sub else {}), **({"paused": True} if dl_paused else {})},
+            {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C", "wake_pr": "o/r#5", "wake_subscriber": self.SUB}]}
+        src = Src(items if items is not None else [item(**self.LATE)])
+        src.f[w.REGISTRY_PATH] = reg
+        src.f["projects/delivery-lead/stages/OPEN-ITEMS.json"] = {"items": dl_items or []}
+        return src
+
+    def _run(self, src, n, acked=lambda pr, at: True, send_ok=lambda p: True, state=None):
+        sent = []
+        state = {} if state is None else state
+        def send(p):
+            sent.append(dict(p))
+            return send_ok(p)
+        for i in range(n):
+            w.run_tick(src, state, T0 + timedelta(minutes=5 * i), send, i + 1, acked)
+        return sent, state
+
+    def test_step_two_is_a_comment_on_the_delivery_leads_page_with_the_late_projects_label(self):
+        sent, _ = self._run(self._src(), 4)
+        s2 = [p for p in sent if p["step"] == 2]
+        self.assertEqual([(p["target"], p["wake_pr"], p["label"], p["for_label"]) for p in s2], [("delivery_lead", "o/r#1", "P1", "P0")])
+        self.assertEqual([p for p in sent if p["step"] == 1][0]["wake_pr"], "o/r#5")      # step 1 is unchanged: the project's own page
+
+    def test_several_items_of_one_project_post_one_step_two_comment_per_tick(self):
+        items = [item(id=f"oi-{n}", **self.LATE) for n in range(5)]
+        sent, state = self._run(self._src(items), 4)
+        self.assertEqual(len([p for p in sent if p["step"] == 2]), 1)
+        self.assertEqual(len([v for v in state.values() if "dl_wake" in v]), 5)             # each item still tracks its own ack
+
+    def test_no_usable_delivery_lead_page_means_the_runner_as_before(self):
+        for kw in (dict(dl_sub=False), dict(dl_paused=True)):
+            sent, _ = self._run(self._src(**kw), 4)
+            s2 = [p for p in sent if p["step"] == 2]
+            self.assertEqual(len(s2), 1, kw)
+            self.assertNotIn("wake_pr", s2[0], kw)
+
+    def test_the_delivery_leads_own_item_uses_the_runner_not_its_own_page(self):
+        src = self._src([], dl_items=[item(id="oi-dl", **self.LATE)])
+        sent, _ = self._run(src, 4)
+        s2 = [p for p in sent if p["step"] == 2]
+        self.assertEqual(len(s2), 1)
+        self.assertNotIn("wake_pr", s2[0])
+
+    def test_a_down_delivery_lead_relay_means_the_runner(self):
+        src = self._src()
+        state = {w.key_of("delivery-lead", "route", ""): {"since": "2026-10-28T08:00:00Z"}}
+        sent, _ = self._run(src, 4, acked=lambda pr, at: False, state=state)
+        s2 = [p for p in sent if p["step"] == 2]
+        self.assertEqual(len(s2), 1)
+        self.assertNotIn("wake_pr", s2[0])
+
+    def test_refused_comment_is_sent_again_by_the_runner_in_the_same_tick(self):
+        sent, _ = self._run(self._src(), 4, send_ok=lambda p: "wake_pr" not in p or p["step"] != 2)
+        s2 = [p for p in sent if p["step"] == 2]
+        self.assertEqual(len(s2), 2)
+        self.assertIn("wake_pr", s2[0])
+        self.assertNotIn("wake_pr", s2[1])
+
+    def test_unacked_step_two_is_sent_again_by_the_runner(self):
+        sent, _ = self._run(self._src(), 9, acked=lambda pr, at: False)
+        s2 = [p for p in sent if p["step"] == 2]
+        self.assertEqual(["wake_pr" in p for p in s2], [True, False])                        # once as a comment, once by the runner, then no more
+
+    def test_comment_text_uses_opaque_labels_only(self):
+        seen = []
+        orig = w.urllib.request.urlopen
+        w.urllib.request.urlopen = lambda req, timeout=0: seen.append(json.loads(req.data)["body"]) or type("R", (), {"status": 201, "__enter__": lambda s: s, "__exit__": lambda s, *a: None})()
+        try:
+            w.comment_wake("o/r#1", "P1", 2, "t", "P0")
+            w.comment_wake("o/r#5", "P0", 1, "t")
+            w.comment_wake("o/r#1", "P1", 2, "t", "oi-secret item")
+        finally:
+            w.urllib.request.urlopen = orig
+        self.assertEqual(seen, ["Watchdog wake: P1 step 2 (for P0)", "Watchdog wake: P0 step 1", "Watchdog wake: P1 step 2"])
+
+
 class RelayProbe(unittest.TestCase):
     """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
     PROBE_T = datetime(2026, 10, 29, 6, 0, tzinfo=timezone.utc)
