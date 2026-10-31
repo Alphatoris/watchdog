@@ -5,7 +5,7 @@ wakes through the wake runner, writes a status feed. Standard library only.
 Rules (design v2 sections 8 and 11): an open item past `due`, or with no `received`
 30 minutes after `given`, or a stage checkpoint passed, is late. Step 1 wakes the
 coordinator; step 2 the Delivery Lead after 2 more ticks. Step 3, the owner list and
-phone push, is by severity and not by time (playbooks rev-053, cycle rules section 21 item 3):
+phone push, is by severity and not by time (playbooks rev-055, cycle rules section 21 item 3):
 only an item marked `"severity": "critical"` reaches the owner, at once. Each step once.
 Reserved items never climb the ladder.
 The public repo holds no project data: state keys are keyed hashes (HMAC), and the
