@@ -755,6 +755,28 @@ class FastPass(unittest.TestCase):
                     sent += [(tick + 1, s) for s in got]
             self.assertEqual(sent, [(1, 1), (3, 2)])                  # step 1 at tick 1, step 2 two ticks later, as with 5-minute passes only
 
+    def test_first_seen_in_a_fast_pass_is_aged_from_the_next_tick(self):
+        """Checker N1: step 2 must come at least 2 whole ticks after the item was noticed, and the ack window must not shrink either."""
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
+            self._fx(fx, [item()])
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:00:30Z", True), [1])   # noticed in a fast pass after tick 0
+            self.assertEqual(self._state(d)["tick_no"], 0)
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:05:00Z", False), [])   # tick 1: age 0, no step 2
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:10:00Z", False), [])   # tick 2: age 1
+            self.assertEqual(self._main(d, fx, "2026-10-28T10:15:00Z", False), [2])  # tick 3: age 2 = at least 10 minutes after it was noticed
+
+    def test_a_pr_wake_sent_in_a_fast_pass_gets_its_full_ack_window(self):
+        sent, state = [], {}
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        s = Src([item()])
+        s.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        w.run_tick(s, state, T0, lambda p: sent.append(dict(p)) or True, 0, None, True)      # fast pass after tick 0
+        pw = [v["pr_wake"] for v in state.values() if "pr_wake" in v][0]
+        self.assertEqual(pw["tick"], 1)                                                      # counted from tick 1
+        for tick in (1, 2):                                                                  # the relay answers on tick 2 at the latest: still inside the window
+            w.run_tick(s, state, T0 + timedelta(minutes=5 * tick), lambda p: sent.append(dict(p)) or True, tick, lambda pr, at: False)
+        self.assertEqual([x["step"] for x in sent], [1])                                     # not yet declared lost at tick 2 (window is 2 ticks past tick 1)
+
     def test_a_fast_pass_with_nothing_to_do_leaves_state_untouched(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
             self._fx(fx, [])
