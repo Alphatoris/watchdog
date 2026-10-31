@@ -848,6 +848,18 @@ class FastPass(unittest.TestCase):
         self.assertLessEqual(step2 - step1, 5)
         self.assertTrue([1 for m, st, lab, pr in log if st == 1 and not pr])                   # and the runner resend came before it
 
+    def test_fast_passes_do_not_read_acks_for_route_marks_or_probes(self):
+        calls = []
+        reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})
+        s = Src([])
+        s.f[w.REGISTRY_PATH] = {"projects": [reg]}
+        key = w.key_of("watchdog-test", "route", "")
+        state = {key: {"since": "2026-10-28T09:00:00Z"}}                       # a project marked as lost-wake
+        w.run_tick(s, state, T0, lambda p: True, 1, lambda pr, at: calls.append((pr, at)) or False, True)
+        self.assertEqual(calls, [])                                           # fast pass: no read
+        w.run_tick(s, state, T0, lambda p: True, 1, lambda pr, at: calls.append((pr, at)) or False, False)
+        self.assertEqual(len(calls), 1)                                       # a tick still reads it
+
     def test_a_fast_pass_with_nothing_to_do_leaves_state_untouched(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
             self._fx(fx, [])

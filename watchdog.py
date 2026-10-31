@@ -344,14 +344,14 @@ def run_tick(source, state, now, send, tick_no, acked=None, fast=False, sent_log
         if mark and not valid_pr(e.get("wake_pr")):
             del state[pk]                        # the wake page is gone from the registry: the mark has no meaning
             mark = None
-        if mark and acked and acked(e["wake_pr"], mark["since"]):
+        if mark and acked and not fast and acked(e["wake_pr"], mark["since"]):   # a lost-wake mark and the daily probe are judged on ticks only: a down relay costs no reads between ticks
             del state[pk]                        # the relay answered after the lost wake: it is alive again
             mark = None
         if mark:
             seen.add(pk)
             if feed[lab]["wake_route"] == "pr_comment":
                 feed[lab]["wake_route"] = "pr_unacked"
-        probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked or (lambda pr, at: False), feed, stamp)
+        probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, (acked if not fast else None) or (lambda pr, at: False), feed, stamp)
         if probe_late:
             late.append(probe_late)
             late_ladder.append(probe_late)
