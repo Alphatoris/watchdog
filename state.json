@@ -33,7 +33,6 @@
   },
   "2d2615f7d1a41aab": {
    "first_tick": 867,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2,
@@ -49,7 +48,6 @@
   },
   "3ce7eb83ec235604": {
    "first_tick": 867,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2,
@@ -95,7 +93,6 @@
   },
   "a9f9ea0972801bca": {
    "first_tick": 863,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2,
@@ -110,7 +107,6 @@
   },
   "d10d62026f479d36": {
    "first_tick": 863,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2,
@@ -141,6 +137,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T12:41:16Z",
- "tick_no": 911
+ "last_tick_at": "2026-10-31T12:47:02Z",
+ "tick_no": 912
 }
