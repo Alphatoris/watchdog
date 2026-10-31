@@ -53,7 +53,8 @@
    "first_tick": 867,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "3ba1c2858326a3fb": {
@@ -67,7 +68,8 @@
    "first_tick": 867,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "413733656b8f0086": {
@@ -203,6 +205,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-10-31T09:15:57Z",
- "tick_no": 869
+ "last_tick_at": "2026-10-31T09:20:57Z",
+ "tick_no": 870
 }
