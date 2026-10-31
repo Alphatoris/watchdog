@@ -5,7 +5,7 @@
  "projects": {
   "P0": {
    "gate": "unknown",
-   "late": 2,
+   "late": 9,
    "open": 23,
    "stage": 0,
    "state": "in_progress",
@@ -41,7 +41,7 @@
    "open": 0,
    "stage": 0,
    "state": "in_progress",
-   "wake_route": "pr_unacked"
+   "wake_route": "pr_comment"
   },
   "P5": {
    "gate": "unknown",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-31T14:34:58Z",
- "tick_no": 934
+ "tick_at": "2026-10-31T14:39:58Z",
+ "tick_no": 935
 }
