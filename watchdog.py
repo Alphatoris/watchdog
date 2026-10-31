@@ -146,6 +146,14 @@ def milestone_late(stage, status):
     return []
 
 
+def gate_word(status, gate_late):
+    """Public feed word for the evidence gate: unknown (no status file), unreadable, ahead, or ok. Words only, no milestone."""
+    if status is None:
+        return "unknown"
+    kinds = {l[0] for l in gate_late}
+    return "unreadable" if "gate-status-unreadable" in kinds else "ahead" if "stage-ahead-of-evidence" in kinds else "ok"
+
+
 STATE_WORDS = (("waiting_on_aamer", ("waiting on aamer", "waiting_on_aamer")), ("blocked", ("block",)),
                ("done", ("done", "closed", "complete")), ("in_progress", ("progress", "active", "working", "open")))
 
@@ -182,9 +190,13 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
+            gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
             if not paused:
                 try:
-                    late += milestone_late(stage, source.get(f"ledger/status/{pid}.json"))
+                    status = source.get(f"ledger/status/{pid}.json")
+                    gate_late = milestone_late(stage, status)
+                    late += gate_late
+                    gate = gate_word(status, gate_late)
                 except Exception as ex:          # a failed status read must not drop the project's other late items
                     print(f"gate status read error: {type(ex).__name__}: {ex}", file=sys.stderr)
         except Exception as ex:                  # one bad project never stops the others
@@ -197,6 +209,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
         feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
+                             "gate": gate,
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         pk = key_of(pid, "route", "")            # per-project mark: a lost wake keeps the feed off "healthy" until an ack arrives after it
         mark = state.get(pk)

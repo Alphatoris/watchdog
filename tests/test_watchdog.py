@@ -249,9 +249,9 @@ class T(unittest.TestCase):
         for secret in ("SECRETNAME", "SECRETNOTE", "SECRETWHAT", "SECRETOWNER", "Requirements", "watchdog-test"):
             self.assertNotIn(secret, text)
         words = {"other", "blocked", "done", "in_progress", "waiting_on_aamer", "paused", "pr_comment", "pr_unacked", "pr_failed",
-                 "hourly_guard_only", "project_error"}
+                 "hourly_guard_only", "project_error", "unknown", "ok", "ahead", "unreadable"}
         for lab, v in r["projects"].items():
-            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "wake_route", "error"})
+            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "gate", "wake_route", "error"})
             for k, x in v.items():
                 self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
         self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
@@ -332,6 +332,23 @@ class T(unittest.TestCase):
         sent = []
         ticks(Src([], {**s, "stage": 1}, {"accepted_milestone": None}), 1, sent)
         self.assertEqual([p["item"] for p in sent], ["stage-ahead-of-evidence"])
+
+    def test_feed_shows_gate_unknown_when_status_is_missing(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        for status, want in ((None, "unknown"), ({"accepted_milestone": "M2"}, "ok"), ({"accepted_milestone": "M0"}, "ahead"),
+                             ({"accepted_milestone": "stage 3"}, "unreadable")):
+            feed = w.run_tick(Src([], s, status), {}, T0, lambda p: True, 1)
+            self.assertEqual(feed["projects"]["P0"]["gate"], want, status)
+        self.assertNotIn("M2", json.dumps(feed))                      # words only: the milestone itself is never published
+
+    def test_feed_gate_is_unknown_for_a_paused_project(self):
+        s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
+        src = Src([], s, {"accepted_milestone": "M2"})
+        reg = json.loads(json.dumps(REG))                    # REG is shared by every test: never mutate it
+        reg["projects"][0]["paused"] = True
+        src.f[w.REGISTRY_PATH] = reg
+        feed = w.run_tick(src, {}, T0, lambda p: True, 1)
+        self.assertEqual(feed["projects"]["P0"]["gate"], "unknown")
 
     def test_cleared_log_no_longer_counts(self):
         s = {"stage": 3, "state": "working", "next_checkpoint": "2026-10-29T09:00:00Z"}
@@ -416,7 +433,7 @@ class T(unittest.TestCase):
             self.assertEqual(set(feed), {"tick_at", "tick_no", "lag_seconds_past_5min_mark",
                                          "gap_seconds_since_last_tick", "projects", "errors"})
             for entry in feed["projects"].values():
-                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "wake_route", "error"})
+                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "gate", "wake_route", "error"})
             for banned in ("stage_name", "stage_updated", "reserved_waiting"):
                 self.assertNotIn(banned, json.dumps(feed))
 
