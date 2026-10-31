@@ -528,6 +528,83 @@ class T(unittest.TestCase):
                 self.assertNotIn(banned, json.dumps(feed))
 
 
+class DLRouting(unittest.TestCase):
+    """Delivery Lead list entries that name a project in "project" (playbooks rev-058 section 17 items 3 and 6)."""
+    SUB = {"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}
+
+    def _src(self, dl_items, target_items=None, target_paused=False):
+        reg = {"delivery_lead_session_id": "session_DL", "projects": [
+            {"project": "alphatoris-wide", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1", "wake_subscriber": self.SUB},
+            {"project": "watchdog-test", "public_label": "P0", "coordinator_session_id": "session_C", "wake_pr": "o/r#5", "wake_subscriber": self.SUB,
+             **({"paused": True} if target_paused else {})}]}
+        src = Src(target_items or [])
+        src.f[w.REGISTRY_PATH] = reg
+        src.f[w.DL_ITEMS_PATH] = {"items": dl_items}
+        src.f["projects/alphatoris-wide/stages/OPEN-ITEMS.json"] = {"items": dl_items}
+        return src
+
+    def _run(self, src, n=8, state=None):
+        sent = []
+        state = {} if state is None else state
+        for i in range(n):
+            w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(dict(p)) or True, i + 1, lambda pr, at: True)
+        return sent, state
+
+    def test_item_naming_a_project_wakes_that_projects_wake_page(self):
+        src = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        sent, _ = self._run(src, 1)
+        self.assertEqual([(p["item"], p["step"], p["target"], p.get("wake_pr"), p.get("label")) for p in sent],
+                         [("dl:oi-9", 1, "coordinator", "o/r#5", "P0")])        # the target's page, not the Delivery Lead's page
+
+    def test_the_item_still_climbs_to_the_delivery_lead_and_never_to_the_owner(self):
+        src = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        sent, _ = self._run(src, 12)
+        self.assertEqual([(p["step"], p["target"]) for p in sent], [(1, "coordinator"), (2, "delivery_lead")])
+        self.assertEqual({p["item"] for p in sent}, {"dl:oi-9"})            # one ladder: the Delivery Lead's own project does not chase it again
+
+    def test_critical_goes_to_the_owner_first_other_stops_at_step_two(self):
+        base = dict(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        sent, _ = self._run(self._src([item(**base, severity="critical")]), 8)
+        self.assertEqual([(p["step"], p["target"]) for p in sent], [(3, "owner"), (1, "coordinator"), (2, "delivery_lead")])
+        sent, _ = self._run(self._src([item(**base, severity="high")]), 30)
+        self.assertNotIn("owner", [p["target"] for p in sent])
+
+    def test_paused_unknown_or_missing_project_is_not_routed(self):
+        late = dict(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        for dl, paused in (([item(id="oi-1", project="nowhere", **late)], False), ([item(id="oi-1", project="watchdog-test", **late)], True),
+                           ([item(id="oi-1", **late)], False)):
+            sent, _ = self._run(self._src(dl, target_paused=paused), 1)
+            self.assertFalse(any(p["item"].startswith("dl:") or p.get("label") == "P0" for p in sent), (dl, paused))
+            self.assertEqual([(p["item"], p["label"] if "label" in p else None) for p in sent], [("oi-1", "P1")])   # an ordinary Delivery Lead item, as before
+
+    def test_reserved_item_naming_a_project_is_not_routed_and_never_climbs(self):
+        sent, _ = self._run(self._src([item(id="oi-9", project="watchdog-test", owner="Aamer", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")]), 8)
+        self.assertEqual(sent, [])
+
+    def test_moving_due_forward_closes_the_old_ladder(self):
+        state = {}
+        old = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        self._run(old, 1, state)
+        self.assertEqual(len([k for k, v in state.items() if "steps" in v]), 1)
+        moved = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z",
+                                due="2026-10-29T09:55:00Z", received="x", chased=["2026-10-28T09:55:00Z"])])
+        w.run_tick(moved, state, T0 + timedelta(minutes=5), lambda p: True, 2, lambda pr, at: True)
+        self.assertEqual([k for k, v in state.items() if "steps" in v], [])
+
+    def test_same_id_in_the_projects_own_list_does_not_collide(self):
+        late = dict(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
+        src = self._src([item(id="oi-9", project="watchdog-test", **late)], target_items=[item(id="oi-9", **late)])
+        sent, state = self._run(src, 1)
+        self.assertEqual(len(sent), 1)                                               # one step-1 comment for the page (PR 37)
+        self.assertEqual(len([k for k, v in state.items() if "steps" in v]), 2)
+
+    def test_routed_item_is_counted_for_the_delivery_lead_not_the_target(self):
+        src = self._src([item(id="oi-9", project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        feed = w.run_tick(src, {}, T0, lambda p: True, 1, lambda pr, at: True)["projects"]
+        self.assertEqual((feed["P1"]["open"], feed["P1"]["late"]), (1, 1))
+        self.assertEqual((feed["P0"]["open"], feed["P0"]["late"]), (0, 0))
+
+
 class RelayProbe(unittest.TestCase):
     """Daily probe on each relay's wake PR. Probes run on the first tick of PROBE_HOUR_UTC (06:00 UTC)."""
     PROBE_T = datetime(2026, 10, 29, 6, 0, tzinfo=timezone.utc)

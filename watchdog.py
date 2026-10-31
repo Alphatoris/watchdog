@@ -8,6 +8,8 @@ coordinator; step 2 the Delivery Lead after 2 more ticks. Step 3, the owner list
 phone push, is by severity and not by time (playbooks rev-055, cycle rules section 21 item 3):
 only an item marked `"severity": "critical"` reaches the owner, at once. Each step once.
 Reserved items never climb the ladder.
+A Delivery Lead list entry with "project" naming a registered, unpaused project is chased as a late item of that project
+(state key prefixed "dl:"), so its step 1 goes to that project's wake PR (playbooks rev-058 section 17 items 3 and 6).
 The public repo holds no project data: state keys are keyed hashes (HMAC), and the
 feed holds, per project, only a stage number, a state word, counts of open and late
 items and a wake-route word, under opaque labels. The only times in the published
@@ -122,6 +124,29 @@ def late_items(project, stage, items, now):
     return out
 
 
+def route_dl_items(dl_items, entries, now):
+    """Delivery Lead list entries that name a registered, unpaused project in "project" (playbooks rev-058 section 17 items 3 and 6;
+    design a2). Returns {target_project_id: [item, ...]}. Such an item is chased as a late item of THAT project: step 1 to its wake PR,
+    step 2 to the Delivery Lead, step 3 only if severity is critical. Reserved items, items without "project", and items naming an
+    unknown or paused project (stderr note) are not routed and stay ordinary Delivery Lead items."""
+    live = {e["project"]: e for e in entries if isinstance(e, dict) and e.get("project")}
+    routed = {}
+    for it in (dl_items or {}).get("items", []):
+        tgt = it.get("project") if isinstance(it, dict) else None
+        if not tgt or it.get("done") or it.get("dropped"):
+            continue
+        e = live.get(tgt)
+        if e is None or e.get("paused"):
+            print(f"delivery lead item names an unknown or paused project: not routed", file=sys.stderr)
+            continue
+        if f"projects/{tgt}/stages/OPEN-ITEMS.json" == DL_ITEMS_PATH:
+            continue                              # the Delivery Lead's own project: an ordinary item
+        if it.get("reserved") or "aamer" in str(it.get("owner", "")).lower():
+            continue                              # reserved never climbs
+        routed.setdefault(tgt, []).append(it)
+    return routed
+
+
 DL_ONLY = ("stage-ahead-of-evidence", "gate-status-unreadable")   # go to the Delivery Lead only: never the coordinator, never the owner
 MILESTONE_RE = re.compile(r"M([0-6])")
 
@@ -188,6 +213,12 @@ def run_tick(source, state, now, send, tick_no, acked=None):
     dup = {p for p in prs if prs.count(p) > 1}              # one wake PR per project: a shared one is not used
     feed, seen, errors = {}, set(), 0
     commented = {}                              # project id -> the step-1 PR comment already posted this tick
+    try:
+        routed = route_dl_items(source.get(DL_ITEMS_PATH), entries, now)   # Delivery Lead requests addressed to a project
+    except Exception as ex:
+        routed = {}
+        print(f"delivery lead list read error: {type(ex).__name__}: {ex}", file=sys.stderr)
+    routed_ids = {it["id"] for its in routed.values() for it in its if "id" in it}
     labels = [x.get("public_label") for x in entries if isinstance(x, dict)]
     for idx, e in enumerate(entries):
         try:
@@ -200,12 +231,16 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             items = source.get(f"projects/{pid}/stages/OPEN-ITEMS.json")
             paused = bool(e.get("paused"))      # owner-paused project: shown, never chased
             late = [] if paused else late_items(pid, stage, items, now)
+            own_dl = f"projects/{pid}/stages/OPEN-ITEMS.json" == DL_ITEMS_PATH
+            dl_routed = [("dl:" + i, d, r) for i, d, r in late_items(pid, None, {"items": routed.get(pid, [])}, now)] if not paused else []
+            late_ladder = [l for l in late if not (own_dl and l[0] in routed_ids)] + dl_routed   # a routed item climbs under its target, never twice
             gate = "unknown"                    # no status file, a paused project or a failed read: the gate is not known, not silent
             if not paused:
                 try:
                     status = source.get(f"ledger/status/{pid}.json")
                     gate_late = milestone_late(stage, status)
                     late += gate_late
+                    late_ladder += gate_late
                     gate = gate_word(status, gate_late, stage)
                 except Exception as ex:          # a failed status read must not drop the project's other late items
                     print(f"gate status read error: {type(ex).__name__}: {ex}", file=sys.stderr)
@@ -215,6 +250,7 @@ def run_tick(source, state, now, send, tick_no, acked=None):
             print(f"project error: {type(ex).__name__}: {ex}", file=sys.stderr)
             continue
         critical = {i.get("id") for i in (items or {}).get("items", []) if i.get("severity") == "critical"}
+        critical |= {"dl:" + i.get("id") for i in routed.get(pid, []) if i.get("severity") == "critical"}
         openn = len([i for i in (items or {}).get("items", []) if not i.get("done") and not i.get("dropped")])
         stage_no = (stage or {}).get("stage")      # public feed (Aamer, 28 Oct 16:05 UTC): counts only, no names or free text
         feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
@@ -237,13 +273,14 @@ def run_tick(source, state, now, send, tick_no, acked=None):
         probe_late = relay_probe(pid, e, lab, state, seen, now, tick_no, send, acked or (lambda pr, at: False), feed)
         if probe_late:
             late.append(probe_late)
+            late_ladder.append(probe_late)
         if bad_label:
             errors += 1                          # loud for the coordinator (guard lists projects with an error key)
             feed[lab]["error"] = "bad_label"
             print(f"bad public_label for entry {idx}: shown as {lab}", file=sys.stderr)
         if e.get("wake_pr") and not valid_pr(e.get("wake_pr")):
             print(f"bad wake_pr for {lab}: ignored", file=sys.stderr)
-        for item, due, reserved in late:
+        for item, due, reserved in late_ladder:
             if reserved:
                 continue                       # never climbs the ladder
             k = key_of(pid, item, due)
