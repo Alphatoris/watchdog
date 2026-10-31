@@ -845,6 +845,42 @@ class FastPass(unittest.TestCase):
 def iso_(d):
     return d.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+class PinMain(unittest.TestCase):
+    """A pass reads the Library at main's commit sha, not the branch name (a branch-name read can be a minute stale)."""
+    def _run(self, ref_body, fail=False):
+        import io, urllib.error
+        urls = []
+        class R(io.BytesIO):
+            headers = {}
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        def fake(req, timeout=0):
+            urls.append(req.full_url)
+            if "git/ref/heads/main" in req.full_url:
+                if fail:
+                    raise urllib.error.URLError("down")
+                return R(ref_body)
+            return R(b"{}")
+        real = w.urllib.request.urlopen
+        w.urllib.request.urlopen = fake
+        try:
+            src = w.GitHubSource("t")
+            src.pin()
+            src.get("REGISTRY.json")
+        finally:
+            w.urllib.request.urlopen = real
+        return urls
+
+    def test_files_are_read_at_the_pinned_sha(self):
+        sha = "a" * 40
+        urls = self._run(json.dumps({"object": {"sha": sha}}).encode())
+        self.assertTrue(urls[-1].endswith(f"contents/REGISTRY.json?ref={sha}"))
+
+    def test_a_failed_or_odd_pin_falls_back_to_the_branch_name(self):
+        self.assertTrue(self._run(b"{}", fail=True)[-1].endswith("?ref=main"))
+        self.assertTrue(self._run(json.dumps({"object": {"sha": "../x"}}).encode())[-1].endswith("?ref=main"))
+
+
 class SentLog(unittest.TestCase):
     """Every send is recorded counts-only (label, step, route, whether the runner fired), so a runner resend shows in public data."""
     SUB = {"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}
