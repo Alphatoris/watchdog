@@ -1,12 +1,12 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 299,
+ "gap_seconds_since_last_tick": 300,
  "lag_seconds_past_5min_mark": 170,
  "projects": {
   "P0": {
    "gate": "unknown",
-   "late": 15,
-   "open": 23,
+   "late": 14,
+   "open": 22,
    "stage": 0,
    "state": "in_progress",
    "wake_route": "pr_comment"
@@ -76,6 +76,6 @@
    "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-31T19:02:50Z",
- "tick_no": 989
+ "tick_at": "2026-10-31T19:07:50Z",
+ "tick_no": 990
 }
