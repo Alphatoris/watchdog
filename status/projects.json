@@ -1,11 +1,11 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 300,
- "lag_seconds_past_5min_mark": 122,
+ "gap_seconds_since_last_tick": 301,
+ "lag_seconds_past_5min_mark": 123,
  "projects": {
   "P0": {
    "gate": "unknown",
-   "late": 7,
+   "late": 5,
    "open": 12,
    "stage": null,
    "state": "other",
@@ -55,9 +55,9 @@
    "gate": "unknown",
    "late": 0,
    "open": 0,
-   "stage": null,
-   "state": "other",
-   "wake_route": "pr_unacked"
+   "stage": 0,
+   "state": "in_progress",
+   "wake_route": "pr_comment"
   },
   "P7": {
    "gate": "ahead",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-10-31T13:42:02Z",
- "tick_no": 923
+ "tick_at": "2026-10-31T13:47:03Z",
+ "tick_no": 924
 }
