@@ -21,8 +21,8 @@
   },
   "P2": {
    "gate": "unknown",
-   "late": 2,
-   "open": 3,
+   "late": 1,
+   "open": 2,
    "stage": null,
    "state": "other",
    "wake_route": "pr_comment"
@@ -76,6 +76,6 @@
    "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-31T19:22:50Z",
- "tick_no": 993
+ "tick_at": "2026-10-31T19:27:50Z",
+ "tick_no": 994
 }
