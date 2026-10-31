@@ -37,7 +37,7 @@
   },
   "P4": {
    "gate": "unknown",
-   "late": 1,
+   "late": 0,
    "open": 0,
    "stage": 0,
    "state": "in_progress",
@@ -76,6 +76,6 @@
    "wake_route": "pr_unacked"
   }
  },
- "tick_at": "2026-10-31T15:21:13Z",
- "tick_no": 944
+ "tick_at": "2026-10-31T15:26:13Z",
+ "tick_no": 945
 }
