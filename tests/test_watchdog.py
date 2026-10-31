@@ -157,7 +157,7 @@ class T(unittest.TestCase):
         for i, ack in enumerate((False, False, False, True)):
             r = w.run_tick(src, state, T0 + timedelta(minutes=5 * i), lambda p: sent.append(p) or True, i + 1, lambda pr, at, a=ack: a)
             routes.append(r["projects"]["P0"]["wake_route"])
-        self.assertEqual(routes, ["pr_comment", "pr_comment", "pr_unacked", "pr_comment"])   # an ack after the lost wake clears it, even with the item still open
+        self.assertEqual(routes, ["pr_comment", "pr_unacked", "pr_unacked", "pr_comment"])   # an ack after the lost wake clears it, even with the item still open
 
     def _pr_src(self, **k):
         reg = dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}, **k)
@@ -825,11 +825,28 @@ class FastPass(unittest.TestCase):
         s = Src([item()])
         s.f[w.REGISTRY_PATH] = {"projects": [reg]}
         w.run_tick(s, state, T0, lambda p: sent.append(dict(p)) or True, 0, None, True)      # fast pass after tick 0
-        pw = [v["pr_wake"] for v in state.values() if "pr_wake" in v][0]
-        self.assertEqual(pw["tick"], 1)                                                      # counted from tick 1
-        for tick in (1, 2):                                                                  # the relay answers on tick 2 at the latest: still inside the window
-            w.run_tick(s, state, T0 + timedelta(minutes=5 * tick), lambda p: sent.append(dict(p)) or True, tick, lambda pr, at: False)
-        self.assertEqual([x["step"] for x in sent], [1])                                     # not yet declared lost at tick 2 (window is 2 ticks past tick 1)
+        for sec in (30, 60, 119):                                                            # inside the window: not lost, even in fast passes
+            w.run_tick(s, state, T0 + timedelta(seconds=sec), lambda p: sent.append(dict(p)) or True, 0, lambda pr, at: False, True)
+        self.assertEqual([x["step"] for x in sent], [1])
+        w.run_tick(s, state, T0 + timedelta(seconds=121), lambda p: sent.append(dict(p)) or True, 0, lambda pr, at: False, True)
+        self.assertEqual([(x["step"], "wake_pr" in x) for x in sent], [(1, True), (1, False)])   # past it: step 1 resent by the runner
+
+    def test_unacked_step_one_reaches_the_delivery_lead_page_within_five_minutes_in_one_minute_passes(self):
+        reg = {"projects": [
+            {"project": "delivery-lead", "public_label": "P1", "coordinator_session_id": "session_DL", "wake_pr": "o/r#1",
+             "wake_subscriber": {"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"}},
+            dict(REG["projects"][0], wake_pr="o/r#5", wake_subscriber={"session_id": "s", "subscribed_at": "2026-10-28T09:00:00Z"})]}
+        s = Src([item(owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")])
+        s.f[w.REGISTRY_PATH] = reg
+        s.f["projects/delivery-lead/stages/OPEN-ITEMS.json"] = {"items": []}
+        state, log = {}, []
+        for minute in range(0, 6):
+            w.run_tick(s, state, T0 + timedelta(minutes=minute), lambda p: log.append((minute, p["step"], p.get("label"), "wake_pr" in p)) or True,
+                       0 if minute else 1, lambda pr, at: False, minute != 0)
+        step1 = [m for m, st, lab, pr in log if st == 1 and pr][0]
+        step2 = [m for m, st, lab, pr in log if st == 2][0]
+        self.assertLessEqual(step2 - step1, 5)
+        self.assertTrue([1 for m, st, lab, pr in log if st == 1 and not pr])                   # and the runner resend came before it
 
     def test_a_fast_pass_with_nothing_to_do_leaves_state_untouched(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as fx:
@@ -866,7 +883,7 @@ class SentLog(unittest.TestCase):
     def test_a_stopped_relay_shows_comment_then_runner_resend_then_step_two(self):
         log = self._run(6)
         self.assertEqual(log[0], [{"label": "P0", "step": 1, "route": "pr_comment", "runner_fired": False, "ok": True}])
-        self.assertEqual(log[1], [])
+        self.assertEqual([(e["step"], e["route"]) for e in log[1]], [(1, "runner")])      # the 2-minute window passed within the 5-minute gap: resend at once
         resend = [e for t in log for e in t if e["route"] == "runner" and e["step"] == 1]
         self.assertEqual([(e["label"], e["step"], e["runner_fired"]) for e in resend], [("P0", 1, True)])   # the resend is visible
         step2 = [i for i, t in enumerate(log) if any(e["step"] == 2 for e in t)]

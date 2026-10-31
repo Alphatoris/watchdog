@@ -24,6 +24,7 @@ DL_PROJECT = "delivery-lead"              # the Delivery Lead's registry id; its
 DL_ITEMS_PATH = f"projects/{DL_PROJECT}/stages/OPEN-ITEMS.json"
 RECEIVE_GRACE = timedelta(minutes=30)
 STEP2_TICKS = 2                          # ticks after first detection
+ACK_WINDOW_SECONDS = 120                 # a wake comment (step 1 on a project page, step 2 on the Delivery Lead page) not acknowledged within this long is lost; relays answer in 9 to 21 s
 CLOSED_STAGE_STATES = {"done", "closed", "complete", "waiting_on_aamer", "waiting on aamer"}
 
 
@@ -375,7 +376,7 @@ def run_tick(source, state, now, send, tick_no, acked=None, fast=False, sent_log
             if pw and not pw["acked"] and acked:
                 if acked(pw["pr"], pw["at"]):
                     pw["acked"] = True
-                elif tick_no - pw["tick"] >= PR_ACK_TICKS:
+                elif (now - parse(pw["at"])).total_seconds() >= ACK_WINDOW_SECONDS:
                     s["pr_down"] = "pr_unacked"                      # lost wake: later steps use the ladder's other route
                     state[pk] = {"since": pw["at"]}                  # and the project stays marked after this item closes
                     seen.add(pk)
@@ -385,13 +386,14 @@ def run_tick(source, state, now, send, tick_no, acked=None, fast=False, sent_log
             if dw and not dw["acked"] and acked:
                 if acked(dw["pr"], dw["at"]):
                     dw["acked"] = True
-                elif tick_no - dw["tick"] >= PR_ACK_TICKS:
+                elif (now - parse(dw["at"])).total_seconds() >= ACK_WINDOW_SECONDS:
                     s["dl_down"] = True                              # the Delivery Lead's relay did not answer: step 2 is sent again by the wake runner
                     s["steps"] = [x for x in s["steps"] if x != 2]
                     del s["dl_wake"]
             if s.get("pr_down"):
                 feed[lab]["wake_route"] = s["pr_down"]
-            steps = ((2, 0),) if dl_only(item) else ((1, 0), (2, STEP2_TICKS))
+            # step 2 follows at once when the project's own relay did not answer step 1 (the Delivery Lead must hear within about 5 minutes); otherwise it waits its 2 ticks
+            steps = ((2, 0),) if dl_only(item) else ((1, 0), (2, 0 if s.get("pr_down") == "pr_unacked" else STEP2_TICKS))
             if item in critical and not dl_only(item):
                 steps = ((3, 0),) + steps     # critical security, data or major failure: the owner at once; time alone never reaches him
             for step, need in steps:
@@ -613,7 +615,7 @@ def main():
         fire_wake(os.environ.get("WAKE_URL"), os.environ.get("WAKE_KEY"))
     sent = []
     try:
-        feed = run_tick(src, st["items"], now, send, st["tick_no"], None if a.fast else pr_acked(os.environ.get("GH_TOKEN", "")), a.fast, sent_log=sent)   # no ack reads between ticks: acks are judged on ticks
+        feed = run_tick(src, st["items"], now, send, st["tick_no"], pr_acked(os.environ.get("GH_TOKEN", "")), a.fast, sent_log=sent)   # acks are read only for a wake that is still waiting, so a quiet pass costs no extra calls
     except RegistryError as ex:
         print(f"FAILED: {ex}", file=sys.stderr)
         sys.exit(1)
