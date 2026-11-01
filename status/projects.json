@@ -1,12 +1,12 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 257,
+ "gap_seconds_since_last_tick": 300,
  "lag_seconds_past_5min_mark": 74,
  "projects": {
   "P0": {
    "gate": "unknown",
-   "late": 14,
-   "open": 13,
+   "late": 12,
+   "open": 12,
    "stage": 0,
    "state": "in_progress",
    "wake_route": "pr_comment"
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-01T08:01:14Z",
- "tick_no": 1145
+ "tick_at": "2026-11-01T08:06:14Z",
+ "tick_no": 1146
 }
