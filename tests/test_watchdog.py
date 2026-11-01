@@ -2,7 +2,7 @@ import json, os, sys, tempfile, unittest
 from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import watchdog as w
-FWD = ". Relay: after ack, message your coordinator: act now on Delivery Lead request {0} (Library projects/delivery-lead/stages/OPEN-ITEMS.json, entry with that wake_id; no wait for Aamer); report on this page with counts and labels only"
+FWD = ". Relay: after ack, message your coordinator: act now on Delivery Lead request {0} (Library projects/delivery-lead/stages/OPEN-ITEMS.json, entry with that wake_id); report on this page with counts and labels only"
 
 T0 = datetime(2026, 10, 28, 10, 0, tzinfo=timezone.utc)
 REG = {"delivery_lead_session_id": "session_DL", "projects": [
