@@ -400,7 +400,7 @@
   "b354f7180ee8c351": {
    "first_tick": 1079,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T02:30:57Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1079
@@ -519,16 +519,6 @@
    "tick": 830
   }
  },
- "last_tick_at": "2026-11-01T02:26:57Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 1078
+ "last_tick_at": "2026-11-01T02:31:57Z",
+ "tick_no": 1079
 }
