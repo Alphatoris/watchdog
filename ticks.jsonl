@@ -1,4 +1,3 @@
-{"tick_at": "2026-10-31T14:09:58Z", "lag": 298, "gap": 300}
 {"tick_at": "2026-10-31T14:14:58Z", "lag": 298, "gap": 300}
 {"tick_at": "2026-10-31T14:19:58Z", "lag": 298, "gap": 300}
 {"tick_at": "2026-10-31T14:24:58Z", "lag": 298, "gap": 300}
@@ -298,3 +297,4 @@
 {"tick_at": "2026-11-01T14:45:28Z", "lag": 28, "gap": 300, "tick_no": 1226, "sent": [{"label": "P2", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}, {"label": "P2", "step": 1, "route": "pr_comment", "runner_fired": false, "ok": true}]}
 {"tick_at": "2026-11-01T14:50:28Z", "lag": 28, "gap": 300, "tick_no": 1227, "sent": [{"label": "P6", "ok": true, "pass": "fast", "route": "pr_comment", "runner_fired": false, "step": 1}, {"label": "P1", "ok": true, "pass": "fast", "route": "pr_comment", "runner_fired": false, "step": 1}, {"label": "P7", "ok": true, "pass": "fast", "route": "pr_comment", "runner_fired": false, "step": 1}]}
 {"tick_at": "2026-11-01T14:55:28Z", "lag": 28, "gap": 300, "tick_no": 1228, "sent": [{"label": "P2", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}, {"label": "P4", "step": 1, "route": "pr_comment", "runner_fired": false, "ok": true}, {"label": "P6", "step": 1, "route": "pr_comment", "runner_fired": false, "ok": true}, {"label": "P7", "step": 1, "route": "pr_comment", "runner_fired": false, "ok": true}]}
+{"tick_at": "2026-11-01T15:00:28Z", "lag": 28, "gap": 300, "tick_no": 1229, "sent": [{"label": "P6", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}, {"label": "P1", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}, {"label": "P7", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}]}
