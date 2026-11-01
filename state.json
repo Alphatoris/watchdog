@@ -45,18 +45,6 @@
     3
    ]
   },
-  "bd95753c46eac31b": {
-   "first_tick": 1181,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-01T11:00:14Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 1181
-   },
-   "steps": [
-    1
-   ]
-  },
   "c75e5a210bc3e749": {
    "first_tick": 874,
    "steps": [
