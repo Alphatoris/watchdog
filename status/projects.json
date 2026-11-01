@@ -61,8 +61,8 @@
   },
   "P7": {
    "gate": "ahead",
-   "late": 3,
-   "open": 2,
+   "late": 2,
+   "open": 1,
    "stage": 2,
    "state": "in_progress",
    "wake_route": "pr_comment"
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-01T22:04:34Z",
- "tick_no": 1314
+ "tick_at": "2026-11-01T22:09:34Z",
+ "tick_no": 1315
 }
