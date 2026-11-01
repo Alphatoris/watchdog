@@ -24,6 +24,18 @@
   "249b3bc181cd13be": {
    "since": "2026-10-31T20:24:46Z"
   },
+  "27a331c08ed5401d": {
+   "first_tick": 1193,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-01T12:00:14Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1193
+   },
+   "steps": [
+    1
+   ]
+  },
   "2ab55d5240babb01": {
    "at": "2026-11-01T06:00:57Z",
    "down": null,
@@ -74,5 +86,15 @@
   }
  },
  "last_tick_at": "2026-11-01T11:56:14Z",
+ "sent_pending": [
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  }
+ ],
  "tick_no": 1192
 }
