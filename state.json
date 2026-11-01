@@ -60,11 +60,11 @@
    ]
   },
   "1191a16137705683": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "249b3bc181cd13be": {
    "since": "2026-10-31T20:24:46Z"
@@ -89,11 +89,11 @@
    ]
   },
   "2ab55d5240babb01": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "2bda12198eade90c": {
    "dl_wake": {
@@ -115,11 +115,11 @@
    ]
   },
   "3ba1c2858326a3fb": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "3ddafc1a2096b533": {
    "dl_wake": {
@@ -193,11 +193,11 @@
    ]
   },
   "475103cde240408a": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "4caf0c626a40fd60": {
    "dl_wake": {
@@ -391,11 +391,11 @@
    ]
   },
   "a96c6169aba2dfa7": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "b354f7180ee8c351": {
    "first_tick": 1079,
@@ -442,11 +442,11 @@
    ]
   },
   "d692678218abe0b6": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   },
   "d8a99b4b4e28cff6": {
    "first_tick": 915,
@@ -512,14 +512,86 @@
     2
    ]
   },
+  "f06a7ebf74813c93": {
+   "at": "2026-11-01T06:00:57Z",
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
+  },
   "fe15919007ec3d74": {
-   "at": "2026-10-31T06:00:57Z",
+   "at": "2026-11-01T06:00:57Z",
    "down": null,
-   "last": "2026-10-31T06:00:57Z",
-   "pending": false,
-   "tick": 830
+   "last": "2026-11-01T06:00:57Z",
+   "pending": true,
+   "tick": 1121
   }
  },
  "last_tick_at": "2026-11-01T05:56:57Z",
+ "sent_pending": [
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P3",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P4",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P5",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P6",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  }
+ ],
  "tick_no": 1120
 }
