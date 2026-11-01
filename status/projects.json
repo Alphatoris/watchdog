@@ -20,7 +20,7 @@
    "wake_route": "pr_comment"
   },
   "P2": {
-   "gate": "unknown",
+   "gate": "ok",
    "late": 1,
    "open": 2,
    "stage": 0,
@@ -44,7 +44,7 @@
    "wake_route": "pr_comment"
   },
   "P5": {
-   "gate": "unknown",
+   "gate": "ok",
    "late": 0,
    "open": 0,
    "stage": 0,
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-01T08:21:14Z",
- "tick_no": 1149
+ "tick_at": "2026-11-01T08:26:14Z",
+ "tick_no": 1150
 }
