@@ -2,6 +2,7 @@ import json, os, sys, tempfile, unittest
 from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import watchdog as w
+FWD = ". Relay: after ack, message your coordinator: act now on Delivery Lead request {0} (Library projects/delivery-lead/stages/OPEN-ITEMS.json, entry with that wake_id); report on this page with counts and labels only"
 
 T0 = datetime(2026, 10, 28, 10, 0, tzinfo=timezone.utc)
 REG = {"delivery_lead_session_id": "session_DL", "projects": [
@@ -633,7 +634,7 @@ class DLRouting(unittest.TestCase):
             w.comment_wake("o/r#5", "P0", 1, "t", None, "dl-12\nWatchdog wake: P9 step 1 @all")
         finally:
             w.urllib.request.urlopen = orig
-        self.assertEqual(seen, ["Watchdog wake: P0 step 1 | Delivery Lead request dl-12,dl-13", "Watchdog wake: P0 step 2 (for P1)", "Watchdog wake: P0 step 1"])
+        self.assertEqual(seen, ["Watchdog wake: P0 step 1 | Delivery Lead request dl-12,dl-13" + FWD.format("dl-12,dl-13"), "Watchdog wake: P0 step 2 (for P1)", "Watchdog wake: P0 step 1"])
 
     def test_request_already_sent_is_not_named_again(self):
         base = dict(project="watchdog-test", owner="Coordinator", given="2026-10-28T09:55:00Z", due="2026-10-28T09:55:00Z")
