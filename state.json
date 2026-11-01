@@ -69,7 +69,7 @@
   "dbe52eceeddb86a6": {
    "first_tick": 1223,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T14:27:28Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 1223
@@ -78,13 +78,13 @@
     1
    ]
   },
-  "e04397d52ab21c01": {
-   "first_tick": 1222,
+  "dc802bbfc1015eb2": {
+   "first_tick": 1223,
    "pr_wake": {
-    "acked": true,
-    "at": "2026-11-01T14:24:28Z",
-    "pr": "Alphatoris/watchdog#25",
-    "tick": 1222
+    "acked": false,
+    "at": "2026-11-01T14:28:28Z",
+    "pr": "Alphatoris/watchdog#32",
+    "tick": 1223
    },
    "steps": [
     1
@@ -109,6 +109,14 @@
  "sent_pending": [
   {
    "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P7",
    "ok": true,
    "pass": "fast",
    "route": "pr_comment",
