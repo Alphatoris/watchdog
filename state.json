@@ -63,7 +63,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "249b3bc181cd13be": {
@@ -92,7 +92,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "2bda12198eade90c": {
@@ -118,7 +118,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "3ddafc1a2096b533": {
@@ -196,7 +196,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "4caf0c626a40fd60": {
@@ -394,7 +394,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "b354f7180ee8c351": {
@@ -445,7 +445,7 @@
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "d8a99b4b4e28cff6": {
@@ -514,84 +514,19 @@
   },
   "f06a7ebf74813c93": {
    "at": "2026-11-01T06:00:57Z",
+   "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   },
   "fe15919007ec3d74": {
    "at": "2026-11-01T06:00:57Z",
    "down": null,
    "last": "2026-11-01T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 1121
   }
  },
- "last_tick_at": "2026-11-01T05:56:57Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P3",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P4",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P5",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P1",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  }
- ],
- "tick_no": 1120
+ "last_tick_at": "2026-11-01T06:01:57Z",
+ "tick_no": 1121
 }
