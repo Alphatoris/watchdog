@@ -553,7 +553,7 @@ def comment_wake(wake_pr, label, step, token, for_label=None, request=None):
     if isinstance(request, str) and step == 1 and all(REQ_ID_RE.fullmatch(x) for x in request.split(",")):
         req_txt = (" | Delivery Lead request " + request     # request ids only; the text stays in the Library list
                    + ". Relay: after ack, message your coordinator: act now on Delivery Lead request " + request
-                   + " (Library projects/delivery-lead/stages/OPEN-ITEMS.json, entry with that wake_id); report on this page with counts and labels only")
+                   + " (Delivery Lead list entry with that wake_id); report on this page with counts and labels only")
     body = json.dumps({"body": f"Watchdog wake: {label} step {step}{tail}{req_txt}"}).encode()
     req = urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{int(num)}/comments", data=body,
                                  method="POST", headers={"Authorization": f"Bearer {token}",
