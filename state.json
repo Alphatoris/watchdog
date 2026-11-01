@@ -60,7 +60,7 @@
   "94322833033b125e": {
    "first_tick": 1188,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T11:35:14Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1188
@@ -97,16 +97,6 @@
    "tick": 1121
   }
  },
- "last_tick_at": "2026-11-01T11:31:14Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 1187
+ "last_tick_at": "2026-11-01T11:36:14Z",
+ "tick_no": 1188
 }
