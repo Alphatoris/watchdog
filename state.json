@@ -65,6 +65,12 @@
    ]
   },
   "a8b7cc6b599952a4": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-01T10:01:14Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1169
+   },
    "first_tick": 1167,
    "pr_wake": {
     "acked": true,
@@ -73,7 +79,8 @@
     "tick": 1167
    },
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "a96c6169aba2dfa7": {
@@ -155,6 +162,6 @@
    "tick": 1121
   }
  },
- "last_tick_at": "2026-11-01T09:56:14Z",
- "tick_no": 1168
+ "last_tick_at": "2026-11-01T10:01:14Z",
+ "tick_no": 1169
 }
