@@ -48,7 +48,7 @@
   "9366ca483d8fa57c": {
    "first_tick": 1177,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T10:41:14Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 1177
