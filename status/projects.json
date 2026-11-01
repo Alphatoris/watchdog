@@ -63,8 +63,8 @@
    "gate": "ahead",
    "late": 1,
    "open": 1,
-   "stage": 1,
-   "state": "waiting_on_aamer",
+   "stage": 2,
+   "state": "in_progress",
    "wake_route": "pr_comment"
   },
   "PT": {
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-01T20:54:34Z",
- "tick_no": 1300
+ "tick_at": "2026-11-01T20:59:34Z",
+ "tick_no": 1301
 }
