@@ -88,7 +88,7 @@
   },
   "562d0b5c007f21eb": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T18:59:34Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1277
@@ -201,7 +201,7 @@
   },
   "d0fc7a425d1e781f": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T18:59:34Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1277
@@ -265,7 +265,7 @@
   },
   "e66c94b115fdc1ae": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-01T18:59:34Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1277
