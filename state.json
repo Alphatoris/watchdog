@@ -68,10 +68,22 @@
     2
    ]
   },
-  "b4c35da70a5491cb": {
+  "9eb64e0e36aa8705": {
    "first_tick": 1458,
    "pr_wake": {
     "acked": false,
+    "at": "2026-11-02T10:01:58Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1458
+   },
+   "steps": [
+    1
+   ]
+  },
+  "b4c35da70a5491cb": {
+   "first_tick": 1458,
+   "pr_wake": {
+    "acked": true,
     "at": "2026-11-02T10:00:58Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1458
@@ -144,6 +156,14 @@
    "route": "runner",
    "runner_fired": true,
    "step": 2
+  },
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
   }
  ],
  "tick_no": 1457
