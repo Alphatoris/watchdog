@@ -23,7 +23,7 @@
   "1c2ccdfec0a39d10": {
    "first_tick": 1411,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-02T06:06:46Z",
     "pr": "Alphatoris/watchdog#25",
     "tick": 1411
@@ -117,7 +117,7 @@
   "fd37a588038de4cf": {
    "first_tick": 1411,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-02T06:06:46Z",
     "pr": "Alphatoris/watchdog#32",
     "tick": 1411
