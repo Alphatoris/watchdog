@@ -9,7 +9,7 @@
   },
   "16271d48ad2cb608": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-02T08:30:58Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1440
@@ -75,6 +75,18 @@
    "pending": false,
    "tick": 1410
   },
+  "f27d49257c2ac472": {
+   "first_tick": 1440,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T08:31:58Z",
+    "pr": "Alphatoris/watchdog#25",
+    "tick": 1440
+   },
+   "steps": [
+    1
+   ]
+  },
   "fe15919007ec3d74": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
@@ -100,6 +112,14 @@
    "route": "dl_page",
    "runner_fired": false,
    "step": 2
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
   }
  ],
  "tick_no": 1439
