@@ -6,7 +6,7 @@
   "P0": {
    "gate": "ok",
    "late": 5,
-   "open": 21,
+   "open": 27,
    "stage": 0,
    "state": "in_progress",
    "wake_route": "pr_comment"
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-02T07:07:58Z",
- "tick_no": 1423
+ "tick_at": "2026-11-02T07:12:58Z",
+ "tick_no": 1424
 }
