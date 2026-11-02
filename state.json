@@ -20,6 +20,12 @@
    ]
   },
   "06eee3e1d7706af0": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:57:58Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1433
+   },
    "first_tick": 1431,
    "pr_wake": {
     "acked": true,
@@ -28,10 +34,17 @@
     "tick": 1431
    },
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "07ad487c57c1ccc5": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:57:58Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1433
+   },
    "first_tick": 1431,
    "pr_wake": {
     "acked": true,
@@ -40,7 +53,8 @@
     "tick": 1431
    },
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "0b772a813089d076": {
@@ -303,24 +317,6 @@
    ]
   }
  },
- "last_tick_at": "2026-11-02T07:52:58Z",
- "sent_pending": [
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 1432
+ "last_tick_at": "2026-11-02T07:57:58Z",
+ "tick_no": 1433
 }
