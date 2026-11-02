@@ -31,29 +31,11 @@
    "pending": false,
    "tick": 1410
   },
-  "4ee824c2f70c5004": {
-   "first_tick": 1458,
-   "steps": [
-    2
-   ]
-  },
   "9eb64e0e36aa8705": {
    "first_tick": 1458,
    "pr_wake": {
     "acked": true,
     "at": "2026-11-02T10:01:58Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 1458
-   },
-   "steps": [
-    1
-   ]
-  },
-  "b4c35da70a5491cb": {
-   "first_tick": 1458,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-02T10:00:58Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1458
    },
