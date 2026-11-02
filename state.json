@@ -1,17 +1,5 @@
 {
  "items": {
-  "076363e167f1faf0": {
-   "first_tick": 1345,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-02T00:34:46Z",
-    "pr": "Alphatoris/watchdog#32",
-    "tick": 1345
-   },
-   "steps": [
-    1
-   ]
-  },
   "0e00e1dea53691d9": {
    "dl_wake": {
     "acked": true,
