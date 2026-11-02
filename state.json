@@ -31,6 +31,36 @@
    "pending": false,
    "tick": 1410
   },
+  "6c9c73ad654aa150": {
+   "first_tick": 1554,
+   "steps": [
+    2
+   ]
+  },
+  "86729c4a68b1cc77": {
+   "first_tick": 1554,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T18:00:35Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1554
+   },
+   "steps": [
+    1
+   ]
+  },
+  "92e4d927b8751d48": {
+   "first_tick": 1554,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T18:00:35Z",
+    "pr": "Alphatoris/watchdog#32",
+    "tick": 1554
+   },
+   "steps": [
+    1
+   ]
+  },
   "c75e5a210bc3e749": {
    "first_tick": 874,
    "steps": [
@@ -43,6 +73,18 @@
    "last": "2026-11-02T06:00:46Z",
    "pending": false,
    "tick": 1410
+  },
+  "e0bd0935fa412489": {
+   "first_tick": 1554,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T18:00:35Z",
+    "pr": "Alphatoris/watchdog#25",
+    "tick": 1554
+   },
+   "steps": [
+    1
+   ]
   },
   "e35dcae8e940a021": {
    "first_tick": 1524,
@@ -64,6 +106,18 @@
    "pending": false,
    "tick": 1410
   },
+  "fba26139cb3d3494": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-02T18:00:35Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1554
+   },
+   "first_tick": 1554,
+   "steps": [
+    2
+   ]
+  },
   "fe15919007ec3d74": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
@@ -73,5 +127,47 @@
   }
  },
  "last_tick_at": "2026-11-02T17:56:36Z",
+ "sent_pending": [
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "runner",
+   "runner_fired": true,
+   "step": 2
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  }
+ ],
  "tick_no": 1553
 }
