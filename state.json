@@ -4,7 +4,7 @@
    "at": "2026-11-02T06:00:46Z",
    "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "1779a643696209c6": {
@@ -20,9 +20,6 @@
     2
    ]
   },
-  "1a98c555b4a5508d": {
-   "since": "2026-11-02T01:11:46Z"
-  },
   "249b3bc181cd13be": {
    "since": "2026-10-31T20:24:46Z"
   },
@@ -30,7 +27,7 @@
    "at": "2026-11-02T06:00:46Z",
    "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "2c498933eb7c6ff0": {
@@ -41,7 +38,6 @@
     "tick": 1353
    },
    "first_tick": 1352,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -49,14 +45,16 @@
   },
   "3ba1c2858326a3fb": {
    "at": "2026-11-02T06:00:46Z",
+   "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "475103cde240408a": {
    "at": "2026-11-02T06:00:46Z",
+   "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "6d1d1f53c3c79549": {
@@ -90,97 +88,28 @@
     2
    ]
   },
-  "d45085330b6ae9ad": {
-   "since": "2026-11-01T23:12:34Z"
-  },
   "d692678218abe0b6": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "f06a7ebf74813c93": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   },
   "fe15919007ec3d74": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
    "last": "2026-11-02T06:00:46Z",
-   "pending": true,
+   "pending": false,
    "tick": 1410
   }
  },
- "last_tick_at": "2026-11-02T05:58:46Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P3",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P4",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P1",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  }
- ],
- "tick_no": 1409
+ "last_tick_at": "2026-11-02T06:03:46Z",
+ "tick_no": 1410
 }

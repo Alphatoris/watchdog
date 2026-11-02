@@ -6,7 +6,7 @@
   "P0": {
    "gate": "ok",
    "late": 3,
-   "open": 19,
+   "open": 21,
    "stage": 0,
    "state": "in_progress",
    "wake_route": "pr_comment"
@@ -17,7 +17,7 @@
    "open": 0,
    "stage": 2,
    "state": "blocked",
-   "wake_route": "pr_unacked"
+   "wake_route": "pr_comment"
   },
   "P2": {
    "gate": "ok",
@@ -25,7 +25,7 @@
    "open": 0,
    "stage": 0,
    "state": "in_progress",
-   "wake_route": "pr_unacked"
+   "wake_route": "pr_comment"
   },
   "P3": {
    "gate": "unknown",
@@ -61,7 +61,7 @@
   },
   "P7": {
    "gate": "ahead",
-   "late": 1,
+   "late": 2,
    "open": 1,
    "stage": 2,
    "state": "in_progress",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-02T05:58:46Z",
- "tick_no": 1409
+ "tick_at": "2026-11-02T06:03:46Z",
+ "tick_no": 1410
 }
