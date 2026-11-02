@@ -2,7 +2,7 @@
  "items": {
   "008a3c54a8122bb8": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-02T07:37:58Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1429
