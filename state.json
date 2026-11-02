@@ -289,10 +289,30 @@
    "last": "2026-11-02T06:00:46Z",
    "pending": false,
    "tick": 1410
+  },
+  "ff126880e328589f": {
+   "first_tick": 1433,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:55:58Z",
+    "pr": "Alphatoris/watchdog#32",
+    "tick": 1433
+   },
+   "steps": [
+    1
+   ]
   }
  },
  "last_tick_at": "2026-11-02T07:52:58Z",
  "sent_pending": [
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
   {
    "label": "P7",
    "ok": true,
