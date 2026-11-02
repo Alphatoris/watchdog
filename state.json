@@ -1,5 +1,17 @@
 {
  "items": {
+  "0b772a813089d076": {
+   "first_tick": 1425,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:13:58Z",
+    "pr": "Alphatoris/watchdog#32",
+    "tick": 1425
+   },
+   "steps": [
+    1
+   ]
+  },
   "1191a16137705683": {
    "at": "2026-11-02T06:00:46Z",
    "down": null,
@@ -76,6 +88,18 @@
    "pending": false,
    "tick": 1410
   },
+  "574bb57c0f9b8fa0": {
+   "first_tick": 1425,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:13:58Z",
+    "pr": "Alphatoris/watchdog#22",
+    "tick": 1425
+   },
+   "steps": [
+    1
+   ]
+  },
   "6d1d1f53c3c79549": {
    "dl_wake": {
     "acked": true,
@@ -99,6 +123,42 @@
    "steps": [
     1,
     2
+   ]
+  },
+  "9d776605a93a0e79": {
+   "first_tick": 1425,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:13:58Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 1425
+   },
+   "steps": [
+    1
+   ]
+  },
+  "a964fbbb1bb36e07": {
+   "first_tick": 1425,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:13:58Z",
+    "pr": "Alphatoris/watchdog#25",
+    "tick": 1425
+   },
+   "steps": [
+    1
+   ]
+  },
+  "b0b4bce9381e4719": {
+   "first_tick": 1425,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-02T07:13:58Z",
+    "pr": "Alphatoris/watchdog#20",
+    "tick": 1425
+   },
+   "steps": [
+    1
    ]
   },
   "c75e5a210bc3e749": {
@@ -149,5 +209,47 @@
   }
  },
  "last_tick_at": "2026-11-02T07:12:58Z",
+ "sent_pending": [
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P4",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P6",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  }
+ ],
  "tick_no": 1424
 }
