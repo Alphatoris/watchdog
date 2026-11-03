@@ -68,24 +68,6 @@
    ]
   }
  },
- "last_tick_at": "2026-11-03T12:59:21Z",
- "sent_pending": [
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  }
- ],
- "tick_no": 1781
+ "last_tick_at": "2026-11-03T13:04:21Z",
+ "tick_no": 1782
 }
