@@ -1,10 +1,29 @@
 {
  "items": {
   "00cb5708b5713145": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T13:13:21Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1784
+   },
    "first_tick": 1784,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
+   ]
+  },
+  "2d179949594ebe74": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T13:13:21Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1784
+   },
+   "first_tick": 1784,
+   "steps": [
+    2
    ]
   },
   "b83ed9314dd1c34a": {
@@ -23,8 +42,27 @@
    ]
   },
   "ebfa91bbf535c69b": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T13:13:21Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1784
+   },
    "first_tick": 1784,
    "pr_down": "pr_unacked",
+   "steps": [
+    1,
+    2
+   ]
+  },
+  "ef52eb10d77ca5a6": {
+   "first_tick": 1784,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-03T13:13:21Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 1784
+   },
    "steps": [
     1
    ]
@@ -63,6 +101,30 @@
    "route": "runner",
    "runner_fired": true,
    "step": 1
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
   }
  ],
  "tick_no": 1783
