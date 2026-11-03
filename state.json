@@ -36,18 +36,6 @@
   "b83ed9314dd1c34a": {
    "since": "2026-11-03T12:50:21Z"
   },
-  "c75e5a210bc3e749": {
-   "dl_wake": {
-    "acked": false,
-    "at": "2026-11-03T12:54:21Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 1780
-   },
-   "first_tick": 1780,
-   "steps": [
-    2
-   ]
-  },
   "ebfa91bbf535c69b": {
    "dl_wake": {
     "acked": true,
