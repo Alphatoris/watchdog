@@ -1,15 +1,10 @@
 {
- "errors": 2,
+ "errors": 3,
  "gap_seconds_since_last_tick": 300,
  "lag_seconds_past_5min_mark": 261,
  "projects": {
   "P0": {
-   "gate": "ok",
-   "late": 0,
-   "open": 7,
-   "stage": 0,
-   "state": "in_progress",
-   "wake_route": "pr_comment"
+   "error": "project_error"
   },
   "P1": {
    "error": "project_error"
@@ -31,7 +26,12 @@
    "wake_route": "pr_comment"
   },
   "P4": {
-   "error": "project_error"
+   "gate": "ok",
+   "late": 0,
+   "open": 0,
+   "stage": 0,
+   "state": "in_progress",
+   "wake_route": "pr_comment"
   },
   "P5": {
    "gate": "unknown",
@@ -50,12 +50,7 @@
    "wake_route": "pr_comment"
   },
   "P7": {
-   "gate": "ahead",
-   "late": 3,
-   "open": 4,
-   "stage": 3,
-   "state": "in_progress",
-   "wake_route": "pr_unacked"
+   "error": "project_error"
   },
   "PT": {
    "gate": "unknown",
@@ -66,6 +61,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-03T13:04:21Z",
- "tick_no": 1782
+ "tick_at": "2026-11-03T13:09:21Z",
+ "tick_no": 1783
 }
