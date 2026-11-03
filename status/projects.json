@@ -4,7 +4,7 @@
  "lag_seconds_past_5min_mark": 261,
  "projects": {
   "P0": {
-   "gate": "ok",
+   "gate": "unknown",
    "late": 0,
    "open": 7,
    "stage": 0,
@@ -65,7 +65,7 @@
    "open": 3,
    "stage": 3,
    "state": "in_progress",
-   "wake_route": "pr_unacked"
+   "wake_route": "pr_comment"
   },
   "PT": {
    "gate": "unknown",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-03T12:39:21Z",
- "tick_no": 1778
+ "tick_at": "2026-11-03T12:44:21Z",
+ "tick_no": 1779
 }
