@@ -29,6 +29,18 @@
   "b83ed9314dd1c34a": {
    "since": "2026-11-03T13:10:21Z"
   },
+  "c75e5a210bc3e749": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T13:16:21Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1785
+   },
+   "first_tick": 1785,
+   "steps": [
+    2
+   ]
+  },
   "ebfa91bbf535c69b": {
    "dl_wake": {
     "acked": true,
@@ -57,5 +69,15 @@
   }
  },
  "last_tick_at": "2026-11-03T13:14:21Z",
+ "sent_pending": [
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
+  }
+ ],
  "tick_no": 1784
 }
