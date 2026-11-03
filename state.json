@@ -1,10 +1,17 @@
 {
  "items": {
   "00cb5708b5713145": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T12:53:22Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1780
+   },
    "first_tick": 1780,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "1191a16137705683": {
@@ -14,14 +21,19 @@
    "pending": false,
    "tick": 1698
   },
-  "3ba1c2858326a3fb": {
-   "at": "2026-11-03T06:00:02Z",
-   "down": null,
-   "last": "2026-11-03T06:00:02Z",
-   "pending": false,
-   "tick": 1698
+  "2d179949594ebe74": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-03T12:53:22Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1780
+   },
+   "first_tick": 1780,
+   "steps": [
+    2
+   ]
   },
-  "475103cde240408a": {
+  "3ba1c2858326a3fb": {
    "at": "2026-11-03T06:00:02Z",
    "down": null,
    "last": "2026-11-03T06:00:02Z",
@@ -31,21 +43,28 @@
   "b83ed9314dd1c34a": {
    "since": "2026-11-03T12:50:21Z"
   },
-  "c75e5a210bc3e749": {
+  "ebfa91bbf535c69b": {
    "dl_wake": {
-    "acked": true,
-    "at": "2026-11-03T12:50:21Z",
+    "acked": false,
+    "at": "2026-11-03T12:53:22Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1780
    },
    "first_tick": 1780,
+   "pr_down": "pr_unacked",
    "steps": [
+    1,
     2
    ]
   },
-  "ebfa91bbf535c69b": {
+  "ef52eb10d77ca5a6": {
    "first_tick": 1780,
-   "pr_down": "pr_unacked",
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-03T12:53:22Z",
+    "pr": "Alphatoris/watchdog#18",
+    "tick": 1780
+   },
    "steps": [
     1
    ]
@@ -124,6 +143,30 @@
    "route": "runner",
    "runner_fired": true,
    "step": 1
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
   }
  ],
  "tick_no": 1779
