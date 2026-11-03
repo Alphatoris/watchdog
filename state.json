@@ -2,7 +2,7 @@
  "items": {
   "00cb5708b5713145": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-03T12:03:21Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1771
@@ -121,64 +121,6 @@
    "tick": 1698
   }
  },
- "last_tick_at": "2026-11-03T11:59:21Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "runner",
-   "runner_fired": true,
-   "step": 2
-  },
-  {
-   "label": "P1",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P1",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "runner",
-   "runner_fired": true,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  }
- ],
- "tick_no": 1770
+ "last_tick_at": "2026-11-03T12:04:21Z",
+ "tick_no": 1771
 }
