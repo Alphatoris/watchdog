@@ -21,7 +21,7 @@
   },
   "P2": {
    "gate": "ok",
-   "late": 0,
+   "late": 2,
    "open": 0,
    "stage": 0,
    "state": "in_progress",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-03T07:55:02Z",
- "tick_no": 1721
+ "tick_at": "2026-11-03T08:00:02Z",
+ "tick_no": 1722
 }
