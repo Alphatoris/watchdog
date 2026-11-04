@@ -55,10 +55,17 @@
    "tick": 1986
   },
   "9d7cf222edd07a23": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-04T06:13:30Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 1989
+   },
    "first_tick": 1988,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "b83ed9314dd1c34a": {
@@ -151,5 +158,15 @@
   }
  },
  "last_tick_at": "2026-11-04T06:12:30Z",
+ "sent_pending": [
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
+  }
+ ],
  "tick_no": 1988
 }
