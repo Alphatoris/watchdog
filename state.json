@@ -20,9 +20,6 @@
    "pending": false,
    "tick": 1986
   },
-  "1a98c555b4a5508d": {
-   "since": "2026-11-04T18:38:29Z"
-  },
   "1c4773f7aad2ca2c": {
    "dl_wake": {
     "acked": true,
@@ -102,7 +99,6 @@
     "tick": 2130
    },
    "first_tick": 2129,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -256,16 +252,6 @@
    "tick": 1986
   }
  },
- "last_tick_at": "2026-11-04T18:48:29Z",
- "sent_pending": [
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2131
+ "last_tick_at": "2026-11-04T18:53:29Z",
+ "tick_no": 2132
 }
