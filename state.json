@@ -2,7 +2,7 @@
  "items": {
   "0017bc82e051c716": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-04T04:00:06Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1962
@@ -29,7 +29,7 @@
   "1e85d0f8e57c0307": {
    "first_tick": 1962,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-04T04:00:06Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 1962
@@ -59,7 +59,7 @@
   "835919a80091e94c": {
    "first_tick": 1962,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-04T04:00:06Z",
     "pr": "Alphatoris/watchdog#25",
     "tick": 1962
