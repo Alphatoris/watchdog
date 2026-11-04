@@ -260,32 +260,6 @@
    ]
   }
  },
- "last_tick_at": "2026-11-04T15:11:49Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P3",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2096
+ "last_tick_at": "2026-11-04T15:16:49Z",
+ "tick_no": 2097
 }
