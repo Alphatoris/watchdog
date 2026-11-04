@@ -24,7 +24,7 @@
   "1dfac3cdfb0b48ae": {
    "first_tick": 2092,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-04T14:50:49Z",
     "pr": "Alphatoris/watchdog#19",
     "tick": 2092
@@ -181,16 +181,6 @@
    "tick": 1986
   }
  },
- "last_tick_at": "2026-11-04T14:46:49Z",
- "sent_pending": [
-  {
-   "label": "P3",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2091
+ "last_tick_at": "2026-11-04T14:51:49Z",
+ "tick_no": 2092
 }
