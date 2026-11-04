@@ -14,6 +14,18 @@
     2
    ]
   },
+  "1191a16137705683": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
+  },
+  "2ab55d5240babb01": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
+  },
   "2d179949594ebe74": {
    "dl_wake": {
     "acked": true,
@@ -25,6 +37,18 @@
    "steps": [
     2
    ]
+  },
+  "3ba1c2858326a3fb": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
+  },
+  "475103cde240408a": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
   },
   "b83ed9314dd1c34a": {
    "since": "2026-11-03T13:33:21Z"
@@ -40,6 +64,12 @@
    "steps": [
     2
    ]
+  },
+  "d692678218abe0b6": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
   },
   "e7d7ea192f573d5d": {
    "dl_wake": {
@@ -92,8 +122,78 @@
     1,
     2
    ]
+  },
+  "f06a7ebf74813c93": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
+  },
+  "fe15919007ec3d74": {
+   "at": "2026-11-04T06:00:30Z",
+   "last": "2026-11-04T06:00:30Z",
+   "pending": true,
+   "tick": 1986
   }
  },
  "last_tick_at": "2026-11-04T05:57:30Z",
+ "sent_pending": [
+  {
+   "label": "P0",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P2",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P3",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P4",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P6",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P1",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": "probe"
+  }
+ ],
  "tick_no": 1985
 }
