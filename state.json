@@ -17,7 +17,7 @@
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   },
   "268dd53fe4e48623": {
@@ -36,7 +36,7 @@
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   },
   "2d179949594ebe74": {
@@ -55,7 +55,7 @@
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   },
   "3e4d7ada9e5aaa6b": {
@@ -75,7 +75,7 @@
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   },
   "7d38db42564d6570": {
@@ -190,75 +190,17 @@
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   },
   "fe15919007ec3d74": {
    "at": "2026-11-05T06:00:57Z",
    "down": null,
    "last": "2026-11-05T06:00:57Z",
-   "pending": true,
+   "pending": false,
    "tick": 2266
   }
  },
- "last_tick_at": "2026-11-05T05:56:57Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P3",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P4",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P1",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": "probe"
-  }
- ],
- "tick_no": 2265
+ "last_tick_at": "2026-11-05T06:01:57Z",
+ "tick_no": 2266
 }
