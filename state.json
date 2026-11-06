@@ -353,6 +353,18 @@
     2
    ]
   },
+  "bfd5026e595c7f77": {
+   "first_tick": 2705,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-06T18:31:30Z",
+    "pr": "Alphatoris/watchdog#22",
+    "tick": 2705
+   },
+   "steps": [
+    1
+   ]
+  },
   "c75e5a210bc3e749": {
    "dl_wake": {
     "acked": true,
@@ -507,6 +519,14 @@
   },
   {
    "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  },
+  {
+   "label": "P6",
    "ok": true,
    "pass": "fast",
    "route": "pr_comment",
