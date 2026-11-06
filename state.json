@@ -105,7 +105,6 @@
     "tick": 2693
    },
    "first_tick": 2692,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -280,9 +279,6 @@
     2
    ]
   },
-  "b83ed9314dd1c34a": {
-   "since": "2026-11-06T17:26:30Z"
-  },
   "b9f010b166df73bd": {
    "dl_wake": {
     "acked": true,
@@ -443,56 +439,6 @@
    "tick": 2555
   }
  },
- "last_tick_at": "2026-11-06T17:27:30Z",
- "sent_pending": [
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "runner",
-   "runner_fired": true,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "dl_page",
-   "runner_fired": false,
-   "step": 2
-  },
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2692
+ "last_tick_at": "2026-11-06T17:32:30Z",
+ "tick_no": 2693
 }
