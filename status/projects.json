@@ -65,7 +65,7 @@
    "open": 6,
    "stage": 3,
    "state": "in_progress",
-   "wake_route": "pr_comment"
+   "wake_route": "pr_unacked"
   },
   "PT": {
    "gate": "unknown",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-06T17:47:30Z",
- "tick_no": 2696
+ "tick_at": "2026-11-06T17:52:30Z",
+ "tick_no": 2697
 }
