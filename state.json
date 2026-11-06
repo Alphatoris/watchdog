@@ -16,7 +16,7 @@
   "0f9e86a294d2fd25": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
@@ -54,7 +54,7 @@
   "1e20fbf1739923f4": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#32",
     "tick": 2705
@@ -201,7 +201,7 @@
   "6a56c9bf5e44521c": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
@@ -232,7 +232,7 @@
   "6e95ceb8c6861598": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
@@ -269,7 +269,7 @@
   "8820f1433c34519b": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
@@ -281,7 +281,7 @@
   "88e2da7112db7252": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
@@ -312,7 +312,7 @@
   "96bc411470213a51": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#18",
     "tick": 2705
@@ -368,7 +368,7 @@
   "cd7e7165ee87ec2d": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#32",
     "tick": 2705
@@ -387,7 +387,7 @@
   "d9ed9870ad20d57a": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#32",
     "tick": 2705
@@ -399,7 +399,7 @@
   "e31412e2290f3a09": {
    "first_tick": 2705,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:28:30Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2705
