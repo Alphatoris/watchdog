@@ -39,25 +39,6 @@
    "pending": false,
    "tick": 2555
   },
-  "268a98f3f296cb19": {
-   "dl_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:47:30Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 2696
-   },
-   "first_tick": 2694,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:33:30Z",
-    "pr": "Alphatoris/watchdog#25",
-    "tick": 2694
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
   "268dd53fe4e48623": {
    "dl_wake": {
     "acked": true,
@@ -398,25 +379,6 @@
     2
    ]
   },
-  "d12c82b0451d98bc": {
-   "dl_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:47:30Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 2696
-   },
-   "first_tick": 2694,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:33:30Z",
-    "pr": "Alphatoris/watchdog#19",
-    "tick": 2694
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
   "d692678218abe0b6": {
    "at": "2026-11-06T06:00:59Z",
    "down": null,
@@ -443,25 +405,6 @@
     2
    ]
   },
-  "e217d42a9b8dd64e": {
-   "dl_wake": {
-    "acked": true,
-    "at": "2026-11-04T19:23:29Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 2138
-   },
-   "first_tick": 2136,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-04T19:10:29Z",
-    "pr": "Alphatoris/watchdog#19",
-    "tick": 2136
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
   "e7d7ea192f573d5d": {
    "dl_wake": {
     "acked": true,
@@ -475,25 +418,6 @@
     "at": "2026-11-06T06:01:59Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 2555
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
-  "ea168d0824978b4a": {
-   "dl_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:47:30Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 2696
-   },
-   "first_tick": 2694,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-06T17:33:30Z",
-    "pr": "Alphatoris/watchdog#18",
-    "tick": 2694
    },
    "steps": [
     1,
@@ -560,16 +484,6 @@
    "tick": 2555
   }
  },
- "last_tick_at": "2026-11-06T18:02:30Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2699
+ "last_tick_at": "2026-11-06T18:07:30Z",
+ "tick_no": 2700
 }
