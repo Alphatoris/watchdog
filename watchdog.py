@@ -129,7 +129,7 @@ class DirSource:
 
 
 # ---- decisions -----------------------------------------------------------
-NOT_RESERVED_OWNERS = ("aamer wealth intelligence", "aamer os")   # project names that start with the owner's first name
+NOT_RESERVED_OWNERS = ("aamer wealth intelligence", "aamer os")   # project names that start with the owner's first name ("aamer os" is the old name of PIOS; open items may still carry it, "PIOS ..." has no "aamer" and is never reserved)
 
 
 def is_reserved(it):
