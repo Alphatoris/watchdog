@@ -251,16 +251,6 @@
    "tick": 2266
   }
  },
- "last_tick_at": "2026-11-06T01:44:46Z",
- "sent_pending": [
-  {
-   "label": "P0",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2503
+ "last_tick_at": "2026-11-06T01:49:46Z",
+ "tick_no": 2504
 }
