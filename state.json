@@ -15,7 +15,7 @@
   },
   "0f9e86a294d2fd25": {
    "dl_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-06T18:22:30Z",
     "pr": "Alphatoris/watchdog#8",
     "tick": 2703
