@@ -175,7 +175,8 @@
     "tick": 2700
    },
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "67e3e1947ca83b6b": {
@@ -348,9 +349,6 @@
     1
    ]
   },
-  "b83ed9314dd1c34a": {
-   "since": "2026-11-06T17:46:30Z"
-  },
   "b9e5708f47993210": {
    "dl_wake": {
     "acked": true,
@@ -359,7 +357,6 @@
     "tick": 2697
    },
    "first_tick": 2696,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -520,24 +517,6 @@
    "tick": 2555
   }
  },
- "last_tick_at": "2026-11-06T18:12:30Z",
- "sent_pending": [
-  {
-   "label": "P2",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 2701
+ "last_tick_at": "2026-11-06T18:17:30Z",
+ "tick_no": 2702
 }
