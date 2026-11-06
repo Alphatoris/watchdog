@@ -955,6 +955,11 @@ class ReservedOwner(unittest.TestCase):
         for owner in ("Aamer Wealth Intelligence coordinator", "  aamer os coordinator", "Aamer OS", "AAMER WEALTH INTELLIGENCE"):
             self.assertFalse(w.is_reserved({"owner": owner}), owner)
 
+    def test_the_renamed_project_pios_is_not_reserved(self):
+        for owner in ("PIOS", "PIOS coordinator", "pios coordinator"):
+            self.assertFalse(w.is_reserved({"owner": owner}), owner)
+            self.assertTrue(w.is_reserved({"owner": owner, "reserved": True}), owner)
+
     def test_the_old_reserved_cases_stay_reserved(self):
         for owner in ("Aamer", "aamer", "Waiting on Aamer", "Aamer approval needed", "Aamer (decision)", "Delivery Lead for Aamer"):
             self.assertTrue(w.is_reserved({"owner": owner}), owner)
