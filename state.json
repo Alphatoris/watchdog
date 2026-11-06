@@ -14,10 +14,17 @@
    ]
   },
   "06f8837f7b5ffc02": {
+   "dl_wake": {
+    "acked": false,
+    "at": "2026-11-06T20:00:30Z",
+    "pr": "Alphatoris/watchdog#8",
+    "tick": 2723
+   },
    "first_tick": 2722,
    "pr_down": "pr_unacked",
    "steps": [
-    1
+    1,
+    2
    ]
   },
   "0f9e86a294d2fd25": {
@@ -595,6 +602,14 @@
    "route": "runner",
    "runner_fired": true,
    "step": 1
+  },
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "dl_page",
+   "runner_fired": false,
+   "step": 2
   }
  ],
  "tick_no": 2722
