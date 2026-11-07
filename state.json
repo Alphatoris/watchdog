@@ -129,7 +129,6 @@
     "tick": 3045
    },
    "first_tick": 3044,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -183,7 +182,6 @@
     "tick": 3046
    },
    "first_tick": 3046,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -248,14 +246,10 @@
     "tick": 3044
    },
    "first_tick": 3044,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
    ]
-  },
-  "b83ed9314dd1c34a": {
-   "since": "2026-11-07T22:50:38Z"
   },
   "c0cc9fce6bb0ef1c": {
    "dl_wake": {
@@ -400,6 +394,6 @@
    "tick": 2843
   }
  },
- "last_tick_at": "2026-11-07T22:53:38Z",
- "tick_no": 3046
+ "last_tick_at": "2026-11-07T22:58:38Z",
+ "tick_no": 3047
 }
