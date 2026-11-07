@@ -160,6 +160,18 @@
    "pending": false,
    "tick": 2843
   },
+  "4ec731b4b932acaa": {
+   "first_tick": 2949,
+   "pr_wake": {
+    "acked": false,
+    "at": "2026-11-07T14:49:09Z",
+    "pr": "Alphatoris/watchdog#32",
+    "tick": 2949
+   },
+   "steps": [
+    1
+   ]
+  },
   "51db3ccd2461f63f": {
    "dl_wake": {
     "acked": true,
@@ -526,5 +538,15 @@
   }
  },
  "last_tick_at": "2026-11-07T14:45:09Z",
+ "sent_pending": [
+  {
+   "label": "P7",
+   "ok": true,
+   "pass": "fast",
+   "route": "pr_comment",
+   "runner_fired": false,
+   "step": 1
+  }
+ ],
  "tick_no": 2948
 }
