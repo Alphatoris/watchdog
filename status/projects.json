@@ -62,7 +62,7 @@
   "P7": {
    "gate": "ahead",
    "late": 6,
-   "open": 8,
+   "open": 9,
    "stage": 3,
    "state": "in_progress",
    "wake_route": "pr_unacked"
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-07T22:18:38Z",
- "tick_no": 3039
+ "tick_at": "2026-11-07T22:23:38Z",
+ "tick_no": 3040
 }
