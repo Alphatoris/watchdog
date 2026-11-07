@@ -1,7 +1,7 @@
 {
  "errors": 0,
- "gap_seconds_since_last_tick": 300,
- "lag_seconds_past_5min_mark": 219,
+ "gap_seconds_since_last_tick": 299,
+ "lag_seconds_past_5min_mark": 218,
  "projects": {
   "P0": {
    "gate": "ok",
@@ -61,7 +61,7 @@
   },
   "P7": {
    "gate": "ahead",
-   "late": 4,
+   "late": 5,
    "open": 6,
    "stage": 3,
    "state": "in_progress",
@@ -76,6 +76,6 @@
    "wake_route": "hourly_guard_only"
   }
  },
- "tick_at": "2026-11-07T21:53:39Z",
- "tick_no": 3034
+ "tick_at": "2026-11-07T21:58:38Z",
+ "tick_no": 3035
 }
