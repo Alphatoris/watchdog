@@ -465,25 +465,6 @@
     2
    ]
   },
-  "eaacc4893503bc22": {
-   "dl_wake": {
-    "acked": true,
-    "at": "2026-11-07T00:11:43Z",
-    "pr": "Alphatoris/watchdog#8",
-    "tick": 2773
-   },
-   "first_tick": 2771,
-   "pr_wake": {
-    "acked": true,
-    "at": "2026-11-07T00:00:43Z",
-    "pr": "Alphatoris/watchdog#25",
-    "tick": 2771
-   },
-   "steps": [
-    1,
-    2
-   ]
-  },
   "ebdab9c2e5ae5662": {
    "first_tick": 2242,
    "pr_wake": {
