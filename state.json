@@ -201,7 +201,7 @@
   "9dc9401496a07e0f": {
    "first_tick": 3011,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-07T19:58:24Z",
     "pr": "Alphatoris/watchdog#22",
     "tick": 3011
@@ -346,32 +346,6 @@
    "tick": 2843
   }
  },
- "last_tick_at": "2026-11-07T19:54:24Z",
- "sent_pending": [
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P6",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  },
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 3010
+ "last_tick_at": "2026-11-07T19:59:24Z",
+ "tick_no": 3011
 }
