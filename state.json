@@ -66,7 +66,6 @@
     "tick": 3036
    },
    "first_tick": 3036,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -202,7 +201,6 @@
     "tick": 3025
    },
    "first_tick": 3024,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -213,9 +211,6 @@
    "steps": [
     2
    ]
-  },
-  "b83ed9314dd1c34a": {
-   "since": "2026-11-07T22:30:38Z"
   },
   "be46c51c0c271c8f": {
    "dl_wake": {
@@ -244,7 +239,6 @@
     "tick": 3035
    },
    "first_tick": 3035,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -270,7 +264,6 @@
     "tick": 3042
    },
    "first_tick": 3042,
-   "pr_down": "pr_unacked",
    "steps": [
     1,
     2
@@ -374,16 +367,6 @@
    "tick": 2843
   }
  },
- "last_tick_at": "2026-11-07T22:33:38Z",
- "sent_pending": [
-  {
-   "label": "P7",
-   "ok": true,
-   "pass": "fast",
-   "route": "pr_comment",
-   "runner_fired": false,
-   "step": 1
-  }
- ],
- "tick_no": 3042
+ "last_tick_at": "2026-11-07T22:38:38Z",
+ "tick_no": 3043
 }
