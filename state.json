@@ -331,7 +331,7 @@
   "ecfd71450e305eb3": {
    "first_tick": 3043,
    "pr_wake": {
-    "acked": false,
+    "acked": true,
     "at": "2026-11-07T22:35:38Z",
     "pr": "Alphatoris/watchdog#32",
     "tick": 3043
