@@ -427,11 +427,18 @@
     2
    ]
   },
+  "ce91ec7cb26fe4b5": {
+   "first_tick": 2845,
+   "pr_down": "pr_unacked",
+   "steps": [
+    1
+   ]
+  },
   "d692678218abe0b6": {
    "at": "2026-11-07T06:00:55Z",
-   "down": null,
+   "down": "pr_unacked",
    "last": "2026-11-07T06:00:55Z",
-   "pending": true,
+   "pending": false,
    "tick": 2843
   },
   "e7d7ea192f573d5d": {
@@ -513,6 +520,6 @@
    "tick": 2843
   }
  },
- "last_tick_at": "2026-11-07T06:05:55Z",
- "tick_no": 2844
+ "last_tick_at": "2026-11-07T06:10:55Z",
+ "tick_no": 2845
 }
