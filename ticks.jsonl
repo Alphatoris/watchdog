@@ -1,4 +1,3 @@
-{"tick_at": "2026-11-07T00:11:43Z", "lag": 103, "gap": 300, "tick_no": 2773, "sent": [{"label": "P1", "step": 2, "route": "dl_page", "runner_fired": false, "ok": true}]}
 {"tick_at": "2026-11-07T00:16:43Z", "lag": 103, "gap": 300, "tick_no": 2774, "sent": []}
 {"tick_at": "2026-11-07T00:21:43Z", "lag": 103, "gap": 300, "tick_no": 2775, "sent": []}
 {"tick_at": "2026-11-07T00:26:43Z", "lag": 103, "gap": 300, "tick_no": 2776, "sent": []}
@@ -298,3 +297,4 @@
 {"tick_at": "2026-11-08T00:53:38Z", "lag": 218, "gap": 300, "tick_no": 3070, "sent": []}
 {"tick_at": "2026-11-08T00:58:38Z", "lag": 218, "gap": 300, "tick_no": 3071, "sent": []}
 {"tick_at": "2026-11-08T01:03:38Z", "lag": 218, "gap": 300, "tick_no": 3072, "sent": []}
+{"tick_at": "2026-11-08T01:08:38Z", "lag": 218, "gap": 300, "tick_no": 3073, "sent": []}
