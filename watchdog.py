@@ -156,6 +156,15 @@ def dl_only(item):
     return item in DL_ONLY or item == CHECKPOINT_ENTRY or str(item).startswith(CHECKPOINT_ITEM)
 
 
+def late_kind(item):
+    """Public word for what kind of late item this is. Words only: never an id, name or time."""
+    item = str(item)
+    if item.startswith(CHECKPOINT_ITEM):
+        return "item_checkpoint"
+    return {"stage-checkpoint": "stage_checkpoint", CHECKPOINT_ENTRY: "registry_checkpoint", "relay-probe": "relay_probe",
+            "stage-ahead-of-evidence": "gate", "gate-status-unreadable": "gate"}.get(item, "item")
+
+
 def late_items(project, stage, items, now, checkpoints=True):
     """Return list of (item_id, due_iso, reserved) that are late. An open item may carry an optional "checkpoint" time (the owner
     moves it forward at each check-in); once it has passed, a Delivery Lead only late item reports the miss, keyed by that time."""
@@ -256,6 +265,17 @@ def gate_word(status, gate_late, stage=None):
     return "unreadable" if "gate-status-unreadable" in kinds else "ahead" if "stage-ahead-of-evidence" in kinds else "ok"
 
 
+def late_kinds(late):
+    """Counts of the unreserved late items by kind (item, item_checkpoint, stage_checkpoint, registry_checkpoint, gate, relay_probe),
+    so a count in the feed can be traced to a kind without naming anything. Kinds with no item are left out."""
+    out = {}
+    for item, _due, reserved in late:
+        if not reserved:
+            k = late_kind(item)
+            out[k] = out.get(k, 0) + 1
+    return out
+
+
 STATE_WORDS = (("waiting_on_aamer", ("waiting on aamer", "waiting_on_aamer")), ("blocked", ("block",)),
                ("done", ("done", "closed", "complete")), ("in_progress", ("progress", "active", "working", "open")))
 
@@ -353,6 +373,7 @@ def run_tick(source, state, now, send, tick_no, acked=None, fast=False, sent_log
         feed[lab] = {"stage": stage_no if isinstance(stage_no, int) and not isinstance(stage_no, bool) else None,
                              "state": "paused" if paused else state_word((stage or {}).get("state")), "open": openn,
                              "late": len([l for l in late if not l[2]]),
+                             "late_kinds": late_kinds(late),
                              "gate": gate,
                              "wake_route": ("pr_failed" if not valid_pr(e.get("wake_pr")) else "pr_comment" if subscriber_ok(e, now) and e.get("wake_pr") not in dup else "hourly_guard_only") if e.get("wake_pr") else "hourly_guard_only"}
         pk = key_of(pid, "route", "")            # per-project mark: a lost wake keeps the feed off "healthy" until an ack arrives after it

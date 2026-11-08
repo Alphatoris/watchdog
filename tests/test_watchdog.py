@@ -37,6 +37,9 @@ def ticks(src, n, sent, start=T0, state=None):
     return state
 
 
+KINDS = {"item", "item_checkpoint", "stage_checkpoint", "registry_checkpoint", "gate", "relay_probe"}
+
+
 class T(unittest.TestCase):
     def test_t1_one_late_item_one_wake_no_duplicate(self):
         sent = []
@@ -323,10 +326,21 @@ class T(unittest.TestCase):
         words = {"other", "blocked", "done", "in_progress", "waiting_on_aamer", "paused", "pr_comment", "pr_unacked", "pr_failed",
                  "hourly_guard_only", "project_error", "unknown", "ok", "ahead", "unreadable"}
         for lab, v in r["projects"].items():
-            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "gate", "wake_route", "error"})
+            self.assertLessEqual(set(v), {"stage", "state", "open", "late", "late_kinds", "gate", "wake_route", "error"})
             for k, x in v.items():
+                if k == "late_kinds":
+                    self.assertTrue(set(x) <= KINDS and all(isinstance(n, int) for n in x.values()), (lab, x))
+                    continue
                 self.assertTrue(isinstance(x, int) or x is None or x in words, (lab, k, x))
         self.assertTrue(set(r) <= {"tick_at", "projects", "errors"})
+
+    def test_late_kinds_split_the_late_count_by_kind_words_only(self):
+        self.assertEqual(w.late_kinds([("oi-1", "x", False), ("oi-2", "x", False), ("oi-3", "x", True),
+                                       (w.CHECKPOINT_ENTRY, "x", False), ("stage-checkpoint", "x", False),
+                                       (w.CHECKPOINT_ITEM + "oi-1", "x", False), ("stage-ahead-of-evidence", "", False),
+                                       ("relay-probe", "x", False)]),
+                         {"item": 2, "registry_checkpoint": 1, "stage_checkpoint": 1, "item_checkpoint": 1, "gate": 1, "relay_probe": 1})
+        self.assertEqual(w.late_kinds([]), {})
 
     def test_bad_label_changes_the_feed_only_never_the_wake(self):
         good = REG["projects"][0]
@@ -524,7 +538,7 @@ class T(unittest.TestCase):
             self.assertEqual(set(feed), {"tick_at", "tick_no", "lag_seconds_past_5min_mark",
                                          "gap_seconds_since_last_tick", "projects", "errors"})
             for entry in feed["projects"].values():
-                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "gate", "wake_route", "error"})
+                self.assertTrue(set(entry) <= {"stage", "state", "open", "late", "late_kinds", "gate", "wake_route", "error"})
             for banned in ("stage_name", "stage_updated", "reserved_waiting"):
                 self.assertNotIn(banned, json.dumps(feed))
 
