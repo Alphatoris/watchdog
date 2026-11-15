@@ -1,7 +1,8 @@
 name: watchdog
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  # Timer switched off 15 Nov 2026 at Aamer's direction (GitHub Actions budget). To turn it back on, restore:
+  # schedule:
+  #   - cron: "*/5 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
@@ -9,6 +10,9 @@ permissions:
   pull-requests: write
 jobs:
   tick:
+    # Switched off 15 Nov 2026 at Aamer's direction. The loop restarts itself with workflow_dispatch, so removing the timer
+    # alone would not stop it; with this line the job is skipped (no minutes billed). To turn it back on, delete this line.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 358
     steps:
