@@ -1,7 +1,8 @@
 name: watchdog
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  # Timer switched off 15 Nov 2026 at Aamer's direction (GitHub Actions budget). To turn it back on, restore:
+  # schedule:
+  #   - cron: "*/5 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
